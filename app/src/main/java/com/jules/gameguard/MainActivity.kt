@@ -15,6 +15,7 @@ import com.jules.gameguard.ui.GameGuardTheme
 import com.jules.gameguard.ui.ColorBackground
 import com.jules.gameguard.ui.HomeScreen
 import com.jules.gameguard.ui.SettingsScreen
+import com.jules.gameguard.ui.HistoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(navController = navController, preferences = preferences)
+                        }
+                        composable("history") {
+                            HistoryScreen(navController = navController)
                         }
                     }
                 }

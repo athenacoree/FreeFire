@@ -18,12 +18,15 @@ interface PingRecordDao {
     @Insert
     suspend fun insertRecord(record: PingRecord)
 
-    @Query("DELETE FROM ping_records WHERE id NOT IN (SELECT id FROM ping_records ORDER BY timestamp DESC LIMIT 50)")
-    suspend fun pruneOldRecords()
+    @Query("DELETE FROM ping_records WHERE timestamp < :cutoffTimestamp")
+    suspend fun pruneOldRecords(cutoffTimestamp: Long)
 
     @Transaction
     suspend fun insertAndPrune(record: PingRecord) {
         insertRecord(record)
-        pruneOldRecords()
+        // Keep records for the last 7 days (7 days * 24 hours * 60 mins * 60 secs * 1000 ms)
+        val sevenDaysInMillis = 7L * 24 * 60 * 60 * 1000
+        val cutoff = System.currentTimeMillis() - sevenDaysInMillis
+        pruneOldRecords(cutoff)
     }
 }
