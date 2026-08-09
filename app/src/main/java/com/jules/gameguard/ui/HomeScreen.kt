@@ -192,6 +192,15 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 },
                 actions = {
                     IconButton(
+                        onClick = { navController.navigate("history") },
+                        modifier = Modifier
+                            .padding(end = 6.dp)
+                            .background(Color.White.copy(alpha = 0.05f), CircleShape)
+                            .border(1.dp, ColorCyan.copy(alpha = 0.3f), CircleShape)
+                    ) {
+                        Text("📊", color = ColorCyan, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(
                         onClick = { navController.navigate("settings") },
                         modifier = Modifier
                             .padding(end = 12.dp)
