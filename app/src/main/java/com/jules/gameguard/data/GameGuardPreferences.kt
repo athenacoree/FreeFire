@@ -9,6 +9,8 @@ class GameGuardPreferences(context: Context) {
     companion object {
         private const val KEY_MODO_JUEGO_ACTIVO = "modo_juego_activo"
         private const val KEY_CONFIGURABLE_SERVER = "configurable_server"
+        private const val KEY_LAST_CLOSED_APPS = "last_closed_apps"
+        private const val KEY_LAST_SESSION_FEEDBACK = "last_session_feedback"
         private const val DEFAULT_SERVER = "8.8.4.4"
     }
 
@@ -19,4 +21,12 @@ class GameGuardPreferences(context: Context) {
     var configurableServer: String
         get() = prefs.getString(KEY_CONFIGURABLE_SERVER, DEFAULT_SERVER) ?: DEFAULT_SERVER
         set(value) = prefs.edit().putString(KEY_CONFIGURABLE_SERVER, value).apply()
+
+    var lastClosedApps: String
+        get() = prefs.getString(KEY_LAST_CLOSED_APPS, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_CLOSED_APPS, value).apply()
+
+    var lastSessionFeedback: String
+        get() = prefs.getString(KEY_LAST_SESSION_FEEDBACK, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_SESSION_FEEDBACK, value).apply()
 }

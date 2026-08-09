@@ -6,13 +6,49 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
+import android.view.Gravity
+import android.view.WindowManager
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.jules.gameguard.MainActivity
 import com.jules.gameguard.data.AppDatabase
 import com.jules.gameguard.data.GameGuardPreferences
 import com.jules.gameguard.data.PingRecord
+import com.jules.gameguard.ui.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +69,9 @@ class ConnectionMonitorService : Service() {
 
     private lateinit var preferences: GameGuardPreferences
     private lateinit var db: AppDatabase
+
+    private var composeView: ComposeView? = null
+    private val lifecycleOwner = ServiceLifecycleOwner()
 
     companion object {
         private const val NOTIFICATION_ID = 12345
@@ -60,6 +99,14 @@ class ConnectionMonitorService : Service() {
                 delay(3000)
             }
         }
+
+        // Show floating overlay if permission is granted
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+            // Must run on main thread
+            serviceScope.launch(Dispatchers.Main) {
+                showOverlay()
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -72,29 +119,118 @@ class ConnectionMonitorService : Service() {
         super.onDestroy()
         isRunning.value = false
         serviceJob.cancel()
+        lifecycleOwner.stop()
+
+        if (composeView != null) {
+            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            try {
+                windowManager.removeView(composeView)
+            } catch (e: Exception) {
+                // ignore
+            }
+            composeView = null
+        }
+    }
+
+    private fun showOverlay() {
+        if (composeView != null) return
+
+        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+
+        val layoutParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_PHONE
+            },
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = screenWidth - 250 // start at the right side of the screen
+            y = 300
+        }
+
+        lifecycleOwner.start()
+
+        val view = ComposeView(applicationContext).apply {
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setViewTreeViewModelStoreOwner(lifecycleOwner)
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+            setContent {
+                GameGuardTheme {
+                    OverlayView(
+                        stateFlow = monitorState,
+                        onClose = {
+                            val serviceIntent = Intent(context, ConnectionMonitorService::class.java)
+                            context.stopService(serviceIntent)
+                        },
+                        onDrag = { dx, dy ->
+                            layoutParams.x = (layoutParams.x + dx.toInt()).coerceIn(0, displayMetrics.widthPixels - 120)
+                            layoutParams.y = (layoutParams.y + dy.toInt()).coerceIn(0, displayMetrics.heightPixels - 80)
+                            try {
+                                windowManager.updateViewLayout(this, layoutParams)
+                            } catch (e: Exception) {}
+                        },
+                        onDragEnd = {
+                            val currentX = layoutParams.x
+                            val bubbleWidth = 120
+                            val targetX = if (currentX + (bubbleWidth / 2) < screenWidth / 2) {
+                                0
+                            } else {
+                                screenWidth - bubbleWidth
+                            }
+
+                            serviceScope.launch(Dispatchers.Main) {
+                                val startX = layoutParams.x
+                                val steps = 15
+                                val diff = targetX - startX
+                                for (i in 1..steps) {
+                                    layoutParams.x = startX + (diff * i / steps)
+                                    try {
+                                        windowManager.updateViewLayout(this@apply, layoutParams)
+                                    } catch (e: Exception) {}
+                                    delay(12)
+                                }
+                                layoutParams.x = targetX
+                                try {
+                                    windowManager.updateViewLayout(this@apply, layoutParams)
+                                } catch (e: Exception) {}
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        try {
+            windowManager.addView(view, layoutParams)
+            composeView = view
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private suspend fun runPingCheck() {
         val server = preferences.configurableServer
-        // We ping both 8.8.8.8 and configured server, or do configured server pinging.
-        // Let's perform a dual ping and combine/calculate packet loss & latency.
-        // Alternatively, the spec says: "Cada 3 segundos haga ping a 8.8.8.8 y a un servidor configurable, midiendo latencia y pérdida de paquetes"
 
         val resultGoogle = pingHost("8.8.8.8")
         val resultConfig = pingHost(server)
 
-        // Combine latencies (e.g. average or worst, let's take average if both succeed, or whichever succeeds).
-        // Standard ping output extraction gives us latency and success/loss.
         val latencyGoogle = resultGoogle.first
         val lossGoogle = resultGoogle.second
 
         val latencyConfig = resultConfig.first
         val lossConfig = resultConfig.second
 
-        // Calculate packet loss (average of both or configured)
         val averageLoss = ((lossGoogle + lossConfig) / 2.0).roundToInt()
 
-        // Choose a representative ping: average of successful ones
         val successfulPings = listOf(latencyGoogle, latencyConfig).filter { it >= 0 }
         val representativePing = if (successfulPings.isNotEmpty()) {
             successfulPings.average().toLong()
@@ -102,10 +238,6 @@ class ConnectionMonitorService : Service() {
             -1L
         }
 
-        // State determination
-        // Buena: Ping < 80ms and Loss < 5%
-        // Regular: Ping between 80ms and 150ms or Loss between 5% and 15%
-        // Mala: Ping > 150ms or Loss > 15% or Ping is -1 (error)
         val status = when {
             representativePing == -1L || averageLoss > 15 || representativePing > 150 -> "Mala"
             averageLoss >= 5 || representativePing >= 80 -> "Regular"
@@ -135,12 +267,8 @@ class ConnectionMonitorService : Service() {
         notificationManager.notify(NOTIFICATION_ID, buildNotification(text))
     }
 
-    /**
-     * Executes android ping command. Returns Pair(latencyMs, packetLossPercent)
-     */
     private fun pingHost(host: String): Pair<Long, Double> {
         try {
-            // Run 3 pings
             val process = Runtime.getRuntime().exec("ping -c 3 -W 1 $host")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
@@ -150,16 +278,12 @@ class ConnectionMonitorService : Service() {
             while (reader.readLine().also { line = it } != null) {
                 val currentLine = line ?: ""
                 if (currentLine.contains("packet loss")) {
-                    // Extract packet loss
-                    // E.g., "3 packets transmitted, 3 received, 0% packet loss, time 2003ms"
                     val regex = "(\\d+)% packet loss".toRegex()
                     val match = regex.find(currentLine)
                     if (match != null) {
                         packetLoss = match.groupValues[1].toDouble()
                     }
                 } else if (currentLine.contains("rtt min/avg/max/mdev")) {
-                    // Extract avg rtt
-                    // E.g., "rtt min/avg/max/mdev = 12.345/14.567/16.789/1.234 ms"
                     val parts = currentLine.split(" = ")
                     if (parts.size > 1) {
                         val stats = parts[1].split("/")
@@ -207,6 +331,126 @@ class ConnectionMonitorService : Service() {
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
+        }
+    }
+}
+
+class ServiceLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val vmStore = ViewModelStore()
+
+    init {
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
+    }
+
+    fun start() {
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
+    }
+
+    fun stop() {
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+    }
+
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
+    override val viewModelStore: ViewModelStore get() = vmStore
+}
+
+@Composable
+fun OverlayView(
+    stateFlow: StateFlow<MonitorState?>,
+    onClose: () -> Unit,
+    onDrag: (dx: Float, dy: Float) -> Unit,
+    onDragEnd: () -> Unit
+) {
+    val state by stateFlow.collectAsState()
+    val ping = state?.pingMs ?: 0L
+    val status = state?.status ?: "Buena"
+
+    val color = when (status) {
+        "Regular" -> ColorAmber
+        "Mala" -> ColorRed
+        else -> ColorCyan
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "ping_pulse")
+    val scale by if (status == "Buena") {
+        infiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = 1.03f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse_scale"
+        )
+    } else {
+        remember { mutableStateOf(1.0f) }
+    }
+
+    Row(
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.x, dragAmount.y)
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                    }
+                )
+            }
+            .scale(scale)
+            .background(ColorGlassBg, shape = RoundedCornerShape(24.dp))
+            .border(1.5.dp, color, RoundedCornerShape(24.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(color.copy(alpha = 0.15f), shape = CircleShape)
+                .border(1.dp, color.copy(alpha = 0.5f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$ping",
+                color = color,
+                fontFamily = OrbitronFontFamily,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Text(
+            text = "ms",
+            color = Color.White.copy(alpha = 0.8f),
+            fontFamily = RajdhaniFontFamily,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(16.dp)
+                .background(Color.White.copy(alpha = 0.2f))
+        )
+
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier.size(24.dp)
+        ) {
+            Text(
+                text = "✕",
+                color = ColorRed,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
