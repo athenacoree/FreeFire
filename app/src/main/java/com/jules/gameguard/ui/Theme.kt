@@ -23,28 +23,62 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jules.gameguard.R
 
-// Define modern premium iOS style palette colors
-val ColorBackground = Color(0xFF, 0x0A, 0x0A, 0x0F) // iOS Pure pitch black #000000 / deep gray
-val ColorCyan = Color(0xFF, 0x00, 0x7A, 0xFF)       // Premium iOS Blue #007AFF
-val ColorAmber = Color(0xFF, 0xFF, 0x95, 0x00)      // Premium iOS Orange #FF9500
-val ColorRed = Color(0xFF, 0xFF, 0x3B, 0x30)        // Premium iOS Red #FF3B30
-val ColorGlassBg = Color(0x1F, 0x1F, 0x24, 0xFF)    // solid high-end dark background
-val ColorSurfaceDark = Color(0xFF, 0x1C, 0x1C, 0x1E) // iOS 17 Grouped Surface #1C1C1E
+// Define modern premium iOS style palette colors (Apple system classic inspired)
+val ColorBackground = Color(0xFF, 0x00, 0x00, 0x00)       // Dark mode background (Pure pitch black)
+val ColorBackgroundLight = Color(0xFF, 0xF2, 0xF2, 0xF7)  // Light mode background (Apple Light Grouped)
+val ColorCyan = Color(0xFF, 0x0A, 0x84, 0xFF)             // Premium classic iOS Dark Blue/Cyan
+val ColorCyanLight = Color(0xFF, 0x00, 0x7A, 0xFF)        // Premium classic iOS Light Blue
+val ColorAmber = Color(0xFF, 0xFF, 0x9F, 0x0A)            // Premium iOS Dark Orange
+val ColorAmberLight = Color(0xFF, 0xFF, 0x95, 0x00)       // Premium iOS Light Orange
+val ColorRed = Color(0xFF, 0xFF, 0x45, 0x3A)              // Premium iOS Dark Red
+val ColorRedLight = Color(0xFF, 0xFF, 0x3B, 0x30)         // Premium iOS Light Red
+val ColorGreen = Color(0xFF, 0x30, 0xD1, 0x58)            // Premium iOS Dark Green
+val ColorGreenLight = Color(0xFF, 0x34, 0xC7, 0x59)       // Premium iOS Light Green
+val ColorViolet = Color(0xFF, 0xBF, 0x5A, 0xF2)           // Premium iOS Dark Violet
+val ColorVioletLight = Color(0xFF, 0xAF, 0x52, 0xDE)      // Premium iOS Light Violet
 
-// Use clean, modern system sans-serif font families for high professionalism and readability
+val ColorSurfaceDark = Color(0xFF, 0x1C, 0x1C, 0x1E)     // Dark Mode Grouped Surface #1C1C1E
+val ColorSurfaceLight = Color(0xFF, 0xFF, 0xFF, 0xFF)    // Light Mode Grouped Surface #FFFFFF
+
+// System font definitions
 val OrbitronFontFamily = FontFamily.Default
 val RajdhaniFontFamily = FontFamily.Default
 
-// Completely removed blur modifiers that cause letters to overlap and distort behind cards.
-// Cards are now structured as high-end solid and semi-solid iOS panels.
+/**
+ * Premium crystal glassmorphic container modifier.
+ * Simulates frosted acrylic glass with translucent backgrounds, light reflections, and custom corners.
+ */
 fun Modifier.glassmorphism(
     borderColor: Color = Color.Transparent,
     cornerRadius: Dp = 16.dp,
-    blurRadius: Dp = 0.dp
+    blurRadius: Dp = 0.dp,
+    isDarkMode: Boolean = true
 ): Modifier {
+    val bgGradient = if (isDarkMode) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF, 0xFF, 0xFF, 0x14), // Elegant light reflection at the top
+                Color(0xFF, 0xFF, 0xFF, 0x04)  // Ultra clear body
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF, 0xFF, 0xFF, 0xE0), // Highly reflective crisp frosted white glass
+                Color(0xFF, 0xFF, 0xFF, 0xAA)  // Translucent bottom
+            )
+        )
+    }
+
+    val finalBorderColor = if (borderColor != Color.Transparent) {
+        borderColor
+    } else {
+        if (isDarkMode) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f)
+    }
+
     return this
-        .background(ColorSurfaceDark, shape = RoundedCornerShape(cornerRadius))
-        .border(BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f)), RoundedCornerShape(cornerRadius))
+        .background(brush = bgGradient, shape = RoundedCornerShape(cornerRadius))
+        .border(BorderStroke(1.dp, finalBorderColor), RoundedCornerShape(cornerRadius))
 }
 
 @Composable
@@ -52,7 +86,7 @@ fun Modifier.neonBorderAnimation(
     colors: List<Color> = listOf(ColorCyan, ColorCyan),
     shape: RoundedCornerShape = RoundedCornerShape(16.dp)
 ): Modifier {
-    // Replaced neon blinking lights with elegant clean static iOS borders
+    // Beautiful clean iOS borders
     return this.border(
         BorderStroke(1.5.dp, colors.firstOrNull() ?: ColorCyan),
         shape
@@ -104,11 +138,20 @@ fun GameGuardTheme(
     accentColorStr: String = "CYAN",
     content: @Composable () -> Unit
 ) {
-    val accent = when (accentColorStr.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0xAF, 0x52, 0xDE) // iOS violet / purple
-        else -> ColorCyan
+    val accent = if (isDarkMode) {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     val colorScheme = if (isDarkMode) {
@@ -119,7 +162,7 @@ fun GameGuardTheme(
             onSecondary = Color.White,
             error = ColorRed,
             onError = Color.White,
-            background = Color(0xFF, 0x00, 0x00, 0x00), // Pure Black iOS Background
+            background = ColorBackground,
             onBackground = Color.White,
             surface = ColorSurfaceDark,
             onSurface = Color.White
@@ -128,13 +171,13 @@ fun GameGuardTheme(
         lightColorScheme(
             primary = accent,
             onPrimary = Color.Black,
-            secondary = ColorAmber,
+            secondary = ColorAmberLight,
             onSecondary = Color.Black,
-            error = ColorRed,
+            error = ColorRedLight,
             onError = Color.White,
-            background = Color(0xFF, 0xF2, 0xF2, 0xF7), // Standard iOS Grouped Background
+            background = ColorBackgroundLight,
             onBackground = Color.Black,
-            surface = Color.White,
+            surface = ColorSurfaceLight,
             onSurface = Color.Black
         )
     }

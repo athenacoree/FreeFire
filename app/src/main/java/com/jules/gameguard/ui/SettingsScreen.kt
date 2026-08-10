@@ -71,11 +71,20 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
     var newContactPhone by remember { mutableStateOf("") }
 
     // Dynamic accent color
-    val accentColor = when (selectedAccentColor.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
-        else -> ColorCyan
+    val accentColor = if (isDarkMode) {
+        when (selectedAccentColor.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (selectedAccentColor.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -131,12 +140,12 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -156,8 +165,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -193,7 +201,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isDarkMode = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
+                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
@@ -216,10 +224,10 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         ) {
                             val colorsList = listOf("CYAN", "AMBER", "RED", "VIOLET")
                             val colorMap = mapOf(
-                                "CYAN" to ColorCyan,
-                                "AMBER" to ColorAmber,
-                                "RED" to ColorRed,
-                                "VIOLET" to Color(0xFF, 0x00, 0xD4, 0xFF)
+                                "CYAN" to if (isDarkMode) ColorCyan else ColorCyanLight,
+                                "AMBER" to if (isDarkMode) ColorAmber else ColorAmberLight,
+                                "RED" to if (isDarkMode) ColorRed else ColorRedLight,
+                                "VIOLET" to if (isDarkMode) ColorViolet else ColorVioletLight
                             )
 
                             colorsList.forEach { colorStr ->
@@ -248,8 +256,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -289,7 +296,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                     },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = if (selectedProfile == profile) accentColor else Color.White.copy(alpha = 0.05f),
-                                        contentColor = if (selectedProfile == profile) Color.White else MaterialTheme.colorScheme.onBackground
+                                        contentColor = if (selectedProfile == profile) {
+                                            if (isDarkMode) Color.Black else Color.White
+                                        } else {
+                                            MaterialTheme.colorScheme.onBackground
+                                        }
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f),
@@ -327,7 +338,6 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         Switch(
                             checked = isExclusiveConnEnabled,
                             onCheckedChange = { isChecked ->
-                                // Request VPN permission launcher could be used or just toggle preference
                                 val intentVpn = android.net.VpnService.prepare(context)
                                 if (intentVpn != null) {
                                     Toast.makeText(context, "Por favor autorice el permiso de VPN para continuar", Toast.LENGTH_LONG).show()
@@ -335,7 +345,6 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 } else {
                                     isExclusiveConnEnabled = isChecked
                                     preferences.isExclusiveConnectionEnabled = isChecked
-                                    // Trigger VPN service reload
                                     val toggleIntent = Intent(context, ConnectionMonitorService::class.java).apply {
                                         action = "com.jules.gameguard.TOGGLE_VPN"
                                     }
@@ -343,7 +352,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 }
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
+                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
@@ -379,7 +388,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isDnsOptimizationEnabled = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
+                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
@@ -409,7 +418,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                         },
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = if (selectedDnsProvider == provider) accentColor else Color.White.copy(alpha = 0.05f),
-                                            contentColor = if (selectedDnsProvider == provider) Color.White else MaterialTheme.colorScheme.onBackground
+                                            contentColor = if (selectedDnsProvider == provider) {
+                                                if (isDarkMode) Color.Black else Color.White
+                                            } else {
+                                                MaterialTheme.colorScheme.onBackground
+                                            }
                                         ),
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.weight(1f),
@@ -428,8 +441,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -465,7 +477,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isModoJuegoActivo = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
+                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
@@ -533,7 +545,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -543,8 +555,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -577,7 +588,6 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         fontWeight = FontWeight.Bold
                     )
 
-                    // Hardcoded standard ping options
                     val presetServers = listOf(
                         CustomServer(name = "Google DNS", ipOrDomain = "8.8.4.4"),
                         CustomServer(name = "Cloudflare", ipOrDomain = "1.1.1.1"),
@@ -645,7 +655,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -709,8 +719,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -747,7 +756,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                     },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = if (autoCleanInterval == mins) accentColor else Color.White.copy(alpha = 0.05f),
-                                        contentColor = if (autoCleanInterval == mins) Color.Black else MaterialTheme.colorScheme.onBackground
+                                        contentColor = if (autoCleanInterval == mins) {
+                                            if (isDarkMode) Color.Black else Color.White
+                                        } else {
+                                            MaterialTheme.colorScheme.onBackground
+                                        }
                                     ),
                                     shape = RoundedCornerShape(6.dp),
                                     modifier = Modifier.weight(1f),
@@ -822,7 +835,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
