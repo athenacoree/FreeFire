@@ -16,17 +16,23 @@ import com.jules.gameguard.ui.ColorBackground
 import com.jules.gameguard.ui.HomeScreen
 import com.jules.gameguard.ui.SettingsScreen
 import com.jules.gameguard.ui.HistoryScreen
+import com.jules.gameguard.ui.OnboardingScreen
+import com.jules.gameguard.ui.AboutScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val preferences = GameGuardPreferences(applicationContext)
 
         setContent {
-            GameGuardTheme {
+            val preferences = remember { GameGuardPreferences(applicationContext) }
+
+            GameGuardTheme(
+                isDarkMode = preferences.isDarkMode,
+                accentColorStr = preferences.accentColor
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = ColorBackground
+                    color = if (preferences.isDarkMode) ColorBackground else androidx.compose.ui.graphics.Color(0xFF, 0xF5, 0xF7, 0xFA)
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "home") {
@@ -38,6 +44,12 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("history") {
                             HistoryScreen(navController = navController)
+                        }
+                        composable("onboarding") {
+                            OnboardingScreen(navController = navController, preferences = preferences)
+                        }
+                        composable("about") {
+                            AboutScreen(navController = navController, preferences = preferences)
                         }
                     }
                 }

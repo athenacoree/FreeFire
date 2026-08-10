@@ -3,13 +3,18 @@ package com.jules.gameguard.ui
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,17 +25,51 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.jules.gameguard.data.GameGuardPreferences
+import com.jules.gameguard.data.*
 import com.jules.gameguard.service.ConnectionMonitorService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController, preferences: GameGuardPreferences) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    val db = remember { AppDatabase.getDatabase(context.applicationContext) }
+
+    // Collect Room DB lists
+    val customServers by db.customServerDao().getAllCustomServersFlow().collectAsState(initial = emptyList())
+    val whitelistedApps by db.whitelistedAppDao().getAllWhitelistedAppsFlow().collectAsState(initial = emptyList())
+    val allowedContacts by db.allowedContactDao().getAllAllowedContactsFlow().collectAsState(initial = emptyList())
+
+    // Settings state
     var blockCallsEnabled by remember { mutableStateOf(preferences.isModoJuegoActivo) }
-    var serverIp by remember { mutableStateOf(preferences.configurableServer) }
-    var isConnectionMonitorRunning by remember {
-        mutableStateOf(ConnectionMonitorService.isRunning.value)
+    var activeServerIp by remember { mutableStateOf(preferences.configurableServer) }
+    var isConnectionMonitorRunning by remember { mutableStateOf(ConnectionMonitorService.isRunning.value) }
+
+    var isDarkMode by remember { mutableStateOf(preferences.isDarkMode) }
+    var selectedAccentColor by remember { mutableStateOf(preferences.accentColor) }
+    var pingThreshold by remember { mutableStateOf(preferences.pingAlertThresholdMs.toFloat()) }
+    var isPingVibrate by remember { mutableStateOf(preferences.isPingVibrateAlertEnabled) }
+    var isPingSound by remember { mutableStateOf(preferences.isPingSoundAlertEnabled) }
+    var autoCleanInterval by remember { mutableStateOf(preferences.autoRamCleanIntervalMins) }
+
+    // Input text fields
+    var newServerName by remember { mutableStateOf("") }
+    var newServerIp by remember { mutableStateOf("") }
+    var newAppName by remember { mutableStateOf("") }
+    var newAppPkg by remember { mutableStateOf("") }
+    var newContactName by remember { mutableStateOf("") }
+    var newContactPhone by remember { mutableStateOf("") }
+
+    // Dynamic accent color
+    val accentColor = when (selectedAccentColor.uppercase()) {
+        "AMBER" -> ColorAmber
+        "RED" -> ColorRed
+        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
+        else -> ColorCyan
     }
 
     LaunchedEffect(Unit) {
@@ -44,11 +83,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             TopAppBar(
                 title = {
                     Text(
-                        text = "CONFIGURACIÓN",
+                        text = "CONFIGURACIÓN HUD",
                         fontFamily = OrbitronFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
@@ -57,30 +96,48 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         modifier = Modifier
                             .padding(start = 12.dp, end = 8.dp)
                             .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                            .border(1.dp, ColorCyan.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                             .size(36.dp)
                     ) {
                         Text(
                             text = "◀",
-                            color = ColorCyan,
+                            color = accentColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 },
+                actions = {
+                    IconButton(
+                        onClick = { navController.navigate("about") },
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .size(36.dp)
+                    ) {
+                        Text(
+                            text = "ℹ",
+                            color = accentColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ColorBackground,
-                    titleContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = ColorBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
+                .verticalScroll(scrollState)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -89,12 +146,104 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Section 1: Call Blocking Card (Glassmorphism)
+            // Theme Configuration Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, ColorCyan.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "ESTILO Y APARIENCIA",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Modo Oscuro HUD",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = { isChecked ->
+                                isDarkMode = isChecked
+                                preferences.isDarkMode = isChecked
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.Black,
+                                checkedTrackColor = accentColor
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Color de Acento HUD",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = RajdhaniFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val colorsList = listOf("CYAN", "AMBER", "RED", "VIOLET")
+                            val colorMap = mapOf(
+                                "CYAN" to ColorCyan,
+                                "AMBER" to ColorAmber,
+                                "RED" to ColorRed,
+                                "VIOLET" to Color(0xFF, 0x00, 0xD4, 0xFF)
+                            )
+
+                            colorsList.forEach { colorStr ->
+                                val active = colorMap[colorStr] ?: ColorCyan
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(active, CircleShape)
+                                        .border(
+                                            width = if (selectedAccentColor == colorStr) 3.dp else 0.dp,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            shape = CircleShape
+                                        )
+                                        .clickable {
+                                            selectedAccentColor = colorStr
+                                            preferences.accentColor = colorStr
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Call Blocking & Allowed Contacts Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
+                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(
@@ -102,7 +251,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                 ) {
                     Text(
                         text = "BLOQUEO DE LLAMADAS (DND)",
-                        color = ColorCyan,
+                        color = accentColor,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -117,19 +266,12 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Rechazar llamadas entrantes",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "Silencia y rechaza llamadas automáticamente mientras juegas",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontFamily = RajdhaniFontFamily,
-                                fontSize = 13.sp
-                            )
                         }
-
                         Switch(
                             checked = blockCallsEnabled,
                             onCheckedChange = { isChecked ->
@@ -138,111 +280,364 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.Black,
-                                checkedTrackColor = ColorCyan,
-                                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+                                checkedTrackColor = accentColor
                             )
                         )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    Text(
+                        text = "CONTACTOS PERMITIDOS (EXCEPCIONES)",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    allowedContacts.forEach { contact ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(contact.name, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(contact.phoneNumber, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
+                            }
+                            IconButton(onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    db.allowedContactDao().delete(contact)
+                                }
+                            }) {
+                                Text("✕", color = ColorRed)
+                            }
+                        }
+                    }
+
+                    // Add Contact Input
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = newContactName,
+                            onValueChange = { newContactName = it },
+                            placeholder = { Text("Nombre") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = newContactPhone,
+                            onValueChange = { newContactPhone = it },
+                            placeholder = { Text("Número") },
+                            modifier = Modifier.weight(1.2f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (newContactName.isNotEmpty() && newContactPhone.isNotEmpty()) {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        db.allowedContactDao().insert(AllowedContact(name = newContactName, phoneNumber = newContactPhone))
+                                    }
+                                    newContactName = ""
+                                    newContactPhone = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
 
-            // Section 2: Ping Monitor Configuration Card (Glassmorphism)
+            // Connection Monitor Configuration Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, ColorCyan.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "MONITOR DE CONEXIÓN",
-                        color = ColorCyan,
+                        text = "MONITOR DE PING Y CALIDAD DE RED",
+                        color = accentColor,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
 
-                    OutlinedTextField(
-                        value = serverIp,
-                        onValueChange = {
-                            serverIp = it
-                            preferences.configurableServer = it
-                        },
-                        label = {
-                            Text(
-                                "SERVIDOR DE PING (IP / DOMINIO)",
-                                fontFamily = OrbitronFontFamily,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ColorCyan.copy(alpha = 0.8f)
-                            )
-                        },
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontFamily = RajdhaniFontFamily,
-                            fontSize = 15.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ColorCyan,
-                            unfocusedBorderColor = ColorCyan.copy(alpha = 0.4f),
-                            focusedLabelColor = ColorCyan,
-                            unfocusedLabelColor = Color.White.copy(alpha = 0.6f),
-                            cursorColor = ColorCyan
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
+                    // Active server selection
+                    Text(
+                        text = "Servidor Ping Activo: $activeServerIp",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontFamily = RajdhaniFontFamily,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                    // Custom Server List
+                    Text(
+                        text = "LISTA DE SERVIDORES DE PING",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Iniciar Servicio de Monitoreo",
-                                color = Color.White,
-                                fontFamily = RajdhaniFontFamily,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Ejecuta el servicio en segundo plano con la burbuja de ping",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontFamily = RajdhaniFontFamily,
-                                fontSize = 13.sp
-                            )
-                        }
+                    // Hardcoded standard ping options
+                    val presetServers = listOf(
+                        CustomServer(name = "Google DNS", ipOrDomain = "8.8.4.4"),
+                        CustomServer(name = "Cloudflare", ipOrDomain = "1.1.1.1"),
+                        CustomServer(name = "Free Fire Latam", ipOrDomain = "200.23.1.2")
+                    )
 
-                        Switch(
-                            checked = isConnectionMonitorRunning,
-                            onCheckedChange = { isChecked ->
-                                val serviceIntent = Intent(context, ConnectionMonitorService::class.java)
-                                if (isChecked) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        context.startForegroundService(serviceIntent)
-                                    } else {
-                                        context.startService(serviceIntent)
+                    (presetServers + customServers).forEach { server ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    activeServerIp = server.ipOrDomain
+                                    preferences.configurableServer = server.ipOrDomain
+                                    Toast.makeText(context, "Servidor cambiado a ${server.name} (${server.ipOrDomain})", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(server.name, color = if (activeServerIp == server.ipOrDomain) accentColor else MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(server.ipOrDomain, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
+                            }
+                            if (!presetServers.any { it.ipOrDomain == server.ipOrDomain }) {
+                                IconButton(onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        db.customServerDao().delete(server)
                                     }
-                                } else {
-                                    context.stopService(serviceIntent)
+                                }) {
+                                    Text("✕", color = ColorRed)
+                                }
+                            }
+                        }
+                    }
+
+                    // Add Custom Server Input
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = newServerName,
+                            onValueChange = { newServerName = it },
+                            placeholder = { Text("Nombre Servidor") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = newServerIp,
+                            onValueChange = { newServerIp = it },
+                            placeholder = { Text("IP/Dominio") },
+                            modifier = Modifier.weight(1.2f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (newServerName.isNotEmpty() && newServerIp.isNotEmpty()) {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        db.customServerDao().insert(CustomServer(name = newServerName, ipOrDomain = newServerIp))
+                                    }
+                                    newServerName = ""
+                                    newServerIp = ""
                                 }
                             },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
-                                checkedTrackColor = ColorCyan,
-                                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    // Ping Alert Threshold
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Alerta de Ping Alto (> ${pingThreshold.toInt()} ms)",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = RajdhaniFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Slider(
+                            value = pingThreshold,
+                            onValueChange = {
+                                pingThreshold = it
+                                preferences.pingAlertThresholdMs = it.toInt()
+                            },
+                            valueRange = 50f..250f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = accentColor,
+                                activeTrackColor = accentColor
                             )
                         )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = isPingVibrate,
+                                    onCheckedChange = {
+                                        isPingVibrate = it
+                                        preferences.isPingVibrateAlertEnabled = it
+                                    },
+                                    colors = CheckboxDefaults.colors(checkedColor = accentColor)
+                                )
+                                Text("Vibrar", fontFamily = RajdhaniFontFamily, fontSize = 14.sp)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = isPingSound,
+                                    onCheckedChange = {
+                                        isPingSound = it
+                                        preferences.isPingSoundAlertEnabled = it
+                                    },
+                                    colors = CheckboxDefaults.colors(checkedColor = accentColor)
+                                )
+                                Text("Alerta Sonora", fontFamily = RajdhaniFontFamily, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // RAM Whitelist & Cleaner Configuration Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
+                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "OPTIMIZADOR DE RAM",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+
+                    // Scheduled automatic clean
+                    Column {
+                        Text(
+                            text = "Limpieza Automática cada:",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = RajdhaniFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val intervals = listOf(0, 5, 10, 15, 30)
+                            intervals.forEach { mins ->
+                                Button(
+                                    onClick = {
+                                        autoCleanInterval = mins
+                                        preferences.autoRamCleanIntervalMins = mins
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (autoCleanInterval == mins) accentColor else Color.White.copy(alpha = 0.05f),
+                                        contentColor = if (autoCleanInterval == mins) Color.Black else MaterialTheme.colorScheme.onBackground
+                                    ),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text(if (mins == 0) "OFF" else "${mins}m", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    // Whitelisted apps list
+                    Text(
+                        text = "LISTA BLANCA DE APPS (NUNCA CERRAR)",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    whitelistedApps.forEach { app ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(app.appName, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(app.packageName, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
+                            }
+                            IconButton(onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    db.whitelistedAppDao().delete(app)
+                                }
+                            }) {
+                                Text("✕", color = ColorRed)
+                            }
+                        }
+                    }
+
+                    // Add custom package whitelist
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = newAppName,
+                            onValueChange = { newAppName = it },
+                            placeholder = { Text("Nombre App") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = newAppPkg,
+                            onValueChange = { newAppPkg = it },
+                            placeholder = { Text("com.package") },
+                            modifier = Modifier.weight(1.2f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (newAppName.isNotEmpty() && newAppPkg.isNotEmpty()) {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        db.whitelistedAppDao().insert(WhitelistedApp(appName = newAppName, packageName = newAppPkg))
+                                    }
+                                    newAppName = ""
+                                    newAppPkg = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

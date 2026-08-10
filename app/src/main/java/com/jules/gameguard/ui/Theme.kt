@@ -76,7 +76,6 @@ fun Modifier.neonBorderAnimation(
             colors = colors,
             center = size.center
         )
-        // Draw the neon border stroke
         drawRoundRect(
             brush = brush,
             size = size,
@@ -125,23 +124,49 @@ val GameGuardTypography = Typography(
     )
 )
 
-private val GameGuardColorScheme = darkColorScheme(
-    primary = ColorCyan,
-    onPrimary = Color.Black,
-    secondary = ColorAmber,
-    onSecondary = Color.Black,
-    error = ColorRed,
-    onError = Color.White,
-    background = ColorBackground,
-    onBackground = Color.White,
-    surface = ColorSurfaceDark,
-    onSurface = Color.White
-)
-
 @Composable
-fun GameGuardTheme(content: @Composable () -> Unit) {
+fun GameGuardTheme(
+    isDarkMode: Boolean = true,
+    accentColorStr: String = "CYAN",
+    content: @Composable () -> Unit
+) {
+    val accent = when (accentColorStr.uppercase()) {
+        "AMBER" -> ColorAmber
+        "RED" -> ColorRed
+        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
+        else -> ColorCyan
+    }
+
+    val colorScheme = if (isDarkMode) {
+        darkColorScheme(
+            primary = accent,
+            onPrimary = Color.Black,
+            secondary = ColorAmber,
+            onSecondary = Color.Black,
+            error = ColorRed,
+            onError = Color.White,
+            background = ColorBackground,
+            onBackground = Color.White,
+            surface = ColorSurfaceDark,
+            onSurface = Color.White
+        )
+    } else {
+        lightColorScheme(
+            primary = accent,
+            onPrimary = Color.White,
+            secondary = ColorAmber,
+            onSecondary = Color.Black,
+            error = ColorRed,
+            onError = Color.White,
+            background = Color(0xFF, 0xF5, 0xF7, 0xFA), // Light HUD background
+            onBackground = Color.Black,
+            surface = Color.White,
+            onSurface = Color.Black
+        )
+    }
+
     MaterialTheme(
-        colorScheme = GameGuardColorScheme,
+        colorScheme = colorScheme,
         typography = GameGuardTypography,
         content = content
     )
