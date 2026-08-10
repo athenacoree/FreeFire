@@ -27,8 +27,8 @@ fun PermissionExplanationDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
-                .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                .border(2.dp, ColorCyan, RoundedCornerShape(16.dp))
+                .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                 .padding(24.dp)
         ) {
             Column(

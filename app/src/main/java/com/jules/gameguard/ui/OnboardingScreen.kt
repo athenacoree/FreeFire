@@ -109,8 +109,8 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {

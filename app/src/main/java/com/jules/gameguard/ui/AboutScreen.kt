@@ -115,8 +115,8 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

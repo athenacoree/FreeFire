@@ -22,6 +22,13 @@ class GameGuardPreferences(context: Context) {
         private const val KEY_AUTO_RAM_CLEAN_INTERVAL = "auto_ram_clean_interval"
         private const val KEY_IS_ONBOARDING_COMPLETED = "is_onboarding_completed"
         private const val KEY_TOTAL_RAM_CLEANED_MB = "total_ram_cleaned_mb"
+
+        // VPN & Advanced optimization preferences
+        private const val KEY_EXCLUSIVE_APP_PACKAGE = "exclusive_app_package"
+        private const val KEY_EXCLUSIVE_CONNECTION_ENABLED = "exclusive_connection_enabled"
+        private const val KEY_ACTIVE_PERFORMANCE_PROFILE = "active_performance_profile" // "BATTERY", "BALANCED", "ULTRA_GAMING"
+        private const val KEY_DNS_OPTIMIZATION_ENABLED = "dns_optimization_enabled"
+        private const val KEY_DNS_PROVIDER = "dns_provider" // "CLOUDFLARE", "GOOGLE", "ADGUARD"
     }
 
     var isModoJuegoActivo: Boolean
@@ -72,4 +79,24 @@ class GameGuardPreferences(context: Context) {
     var totalRamCleanedMb: Long
         get() = prefs.getLong(KEY_TOTAL_RAM_CLEANED_MB, 0L)
         set(value) = prefs.edit().putLong(KEY_TOTAL_RAM_CLEANED_MB, value).apply()
+
+    var exclusiveAppPackage: String
+        get() = prefs.getString(KEY_EXCLUSIVE_APP_PACKAGE, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_EXCLUSIVE_APP_PACKAGE, value).apply()
+
+    var isExclusiveConnectionEnabled: Boolean
+        get() = prefs.getBoolean(KEY_EXCLUSIVE_CONNECTION_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_EXCLUSIVE_CONNECTION_ENABLED, value).apply()
+
+    var activePerformanceProfile: String
+        get() = prefs.getString(KEY_ACTIVE_PERFORMANCE_PROFILE, "ULTRA_GAMING") ?: "ULTRA_GAMING"
+        set(value) = prefs.edit().putString(KEY_ACTIVE_PERFORMANCE_PROFILE, value).apply()
+
+    var isDnsOptimizationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_DNS_OPTIMIZATION_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_DNS_OPTIMIZATION_ENABLED, value).apply()
+
+    var dnsProvider: String
+        get() = prefs.getString(KEY_DNS_PROVIDER, "CLOUDFLARE") ?: "CLOUDFLARE"
+        set(value) = prefs.edit().putString(KEY_DNS_PROVIDER, value).apply()
 }
