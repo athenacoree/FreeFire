@@ -56,6 +56,12 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
     var isPingSound by remember { mutableStateOf(preferences.isPingSoundAlertEnabled) }
     var autoCleanInterval by remember { mutableStateOf(preferences.autoRamCleanIntervalMins) }
 
+    // New premium features states
+    var isExclusiveConnEnabled by remember { mutableStateOf(preferences.isExclusiveConnectionEnabled) }
+    var selectedProfile by remember { mutableStateOf(preferences.activePerformanceProfile) }
+    var isDnsOptEnabled by remember { mutableStateOf(preferences.isDnsOptimizationEnabled) }
+    var selectedDnsProvider by remember { mutableStateOf(preferences.dnsProvider) }
+
     // Input text fields
     var newServerName by remember { mutableStateOf("") }
     var newServerIp by remember { mutableStateOf("") }
@@ -150,8 +156,8 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(
@@ -238,12 +244,192 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                 }
             }
 
+            // PREMIUM IOS ADDED FUNCTIONS CARD
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "FUNCIONES PRO Y PERFILES iOS",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+
+                    // 1. Performance Profile
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Perfil de Rendimiento",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = RajdhaniFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val profiles = listOf("BATTERY", "BALANCED", "ULTRA_GAMING")
+                            val profileLabels = mapOf("BATTERY" to "🔋 Ahorro", "BALANCED" to "⚖️ Balance", "ULTRA_GAMING" to "⚡ Ultra")
+
+                            profiles.forEach { profile ->
+                                Button(
+                                    onClick = {
+                                        selectedProfile = profile
+                                        preferences.activePerformanceProfile = profile
+                                        Toast.makeText(context, "Perfil de Rendimiento: ${profileLabels[profile]}", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (selectedProfile == profile) accentColor else Color.White.copy(alpha = 0.05f),
+                                        contentColor = if (selectedProfile == profile) Color.White else MaterialTheme.colorScheme.onBackground
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text(profileLabels[profile] ?: "", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    // 2. Exclusive connection
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Conexión Exclusiva (Cortafuegos)",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Bloquea internet para otras apps excepto el juego seleccionado",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = isExclusiveConnEnabled,
+                            onCheckedChange = { isChecked ->
+                                // Request VPN permission launcher could be used or just toggle preference
+                                val intentVpn = android.net.VpnService.prepare(context)
+                                if (intentVpn != null) {
+                                    Toast.makeText(context, "Por favor autorice el permiso de VPN para continuar", Toast.LENGTH_LONG).show()
+                                    context.startActivity(intentVpn)
+                                } else {
+                                    isExclusiveConnEnabled = isChecked
+                                    preferences.isExclusiveConnectionEnabled = isChecked
+                                    // Trigger VPN service reload
+                                    val toggleIntent = Intent(context, ConnectionMonitorService::class.java).apply {
+                                        action = "com.jules.gameguard.TOGGLE_VPN"
+                                    }
+                                    context.startService(toggleIntent)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = accentColor
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+
+                    // 3. DNS Optimization
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Optimización de DNS",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Usa DNS de alta velocidad para reducir latencia",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = isDnsOptEnabled,
+                            onCheckedChange = { isChecked ->
+                                isDnsOptEnabled = isChecked
+                                preferences.isDnsOptimizationEnabled = isChecked
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = accentColor
+                            )
+                        )
+                    }
+
+                    if (isDnsOptEnabled) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "Servidor DNS Preferido",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val providers = listOf("CLOUDFLARE", "GOOGLE", "ADGUARD")
+                                val providerLabels = mapOf("CLOUDFLARE" to "⚡ Cloudflare", "GOOGLE" to "🔍 Google", "ADGUARD" to "🛡️ AdGuard")
+
+                                providers.forEach { provider ->
+                                    Button(
+                                        onClick = {
+                                            selectedDnsProvider = provider
+                                            preferences.dnsProvider = provider
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (selectedDnsProvider == provider) accentColor else Color.White.copy(alpha = 0.05f),
+                                            contentColor = if (selectedDnsProvider == provider) Color.White else MaterialTheme.colorScheme.onBackground
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(providerLabels[provider] ?: "", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Call Blocking & Allowed Contacts Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(
@@ -357,8 +543,8 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(
@@ -523,8 +709,8 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(

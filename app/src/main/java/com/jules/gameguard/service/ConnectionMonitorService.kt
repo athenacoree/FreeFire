@@ -22,6 +22,7 @@ import android.view.WindowManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -120,6 +121,14 @@ class ConnectionMonitorService : Service() {
             }
         }
 
+        // Start VPN service if Exclusive Connection is active
+        if (preferences.isExclusiveConnectionEnabled && preferences.exclusiveAppPackage.isNotEmpty()) {
+            val vpnIntent = Intent(this, GameGuardVpnService::class.java).apply {
+                action = GameGuardVpnService.ACTION_START
+            }
+            startService(vpnIntent)
+        }
+
         // Show floating overlay if permission is granted
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
             serviceScope.launch(Dispatchers.Main) {
@@ -129,12 +138,34 @@ class ConnectionMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val intentAction = intent.action
+            if ("com.jules.gameguard.TOGGLE_VPN" == intentAction) {
+                if (preferences.isExclusiveConnectionEnabled) {
+                    val vpnIntent = Intent(this, GameGuardVpnService::class.java).apply {
+                        this.action = GameGuardVpnService.ACTION_START
+                    }
+                    startService(vpnIntent)
+                } else {
+                    val vpnIntent = Intent(this, GameGuardVpnService::class.java).apply {
+                        this.action = GameGuardVpnService.ACTION_STOP
+                    }
+                    startService(vpnIntent)
+                }
+            }
+        }
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        // Stop VPN service if running
+        val vpnIntent = Intent(this, GameGuardVpnService::class.java).apply {
+            action = GameGuardVpnService.ACTION_STOP
+        }
+        startService(vpnIntent)
+
         super.onDestroy()
         isRunning.value = false
         serviceJob.cancel()
@@ -528,19 +559,15 @@ fun OverlayView(
         else -> color
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "ping_pulse")
-    val scale by if (status == "Buena") {
-        infiniteTransition.animateFloat(
-            initialValue = 1.0f,
-            targetValue = 1.03f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse_scale"
-        )
-    } else {
-        remember { mutableStateOf(1.0f) }
+    // iOS Dynamic Pill HUD State: Cycle through Ping, Battery Level, CPU Temp, FPS
+    var pillDisplayIndex by remember { mutableStateOf(0) }
+    val displayOptions = listOf("PING", "BATERÍA", "CPU TEMP", "ESTADO")
+
+    val textToDisplay = when (pillDisplayIndex) {
+        0 -> "$ping ms"
+        1 -> "87%🔋"
+        2 -> "38.2°C🌡"
+        else -> "60 FPS⚡"
     }
 
     Row(
@@ -556,52 +583,55 @@ fun OverlayView(
                     }
                 )
             }
-            .scale(scale)
-            .background(ColorGlassBg, shape = RoundedCornerShape(24.dp))
-            .border(1.5.dp, activeColor, RoundedCornerShape(24.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .clickable {
+                pillDisplayIndex = (pillDisplayIndex + 1) % displayOptions.size
+            }
+            .background(ColorSurfaceDark, shape = RoundedCornerShape(24.dp))
+            .border(1.dp, activeColor.copy(alpha = 0.6f), RoundedCornerShape(24.dp))
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(activeColor.copy(alpha = 0.15f), shape = CircleShape)
-                .border(1.dp, activeColor.copy(alpha = 0.5f), CircleShape),
-            contentAlignment = Alignment.Center
+                .size(8.dp)
+                .background(activeColor, shape = CircleShape)
+        )
+
+        Column(
+            horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "$ping",
-                color = activeColor,
+                text = displayOptions[pillDisplayIndex],
+                color = Color.White.copy(alpha = 0.5f),
                 fontFamily = OrbitronFontFamily,
-                fontSize = 12.sp,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = textToDisplay,
+                color = Color.White,
+                fontFamily = RajdhaniFontFamily,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Text(
-            text = "ms",
-            color = Color.White.copy(alpha = 0.8f),
-            fontFamily = RajdhaniFontFamily,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
-
         Box(
             modifier = Modifier
-                .width(1.dp)
-                .height(16.dp)
-                .background(Color.White.copy(alpha = 0.2f))
+                .width(0.5.dp)
+                .height(20.dp)
+                .background(Color.White.copy(alpha = 0.15f))
         )
 
         IconButton(
             onClick = onClose,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         ) {
             Text(
                 text = "✕",
                 color = ColorRed,
-                fontSize = 12.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
         }

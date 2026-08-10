@@ -23,66 +23,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jules.gameguard.R
 
-// Define HUD gaming palette colors
-val ColorBackground = Color(0x0A, 0x0A, 0x0F, 0xFF) // #0A0A0F
-val ColorCyan = Color(0x00, 0xF0, 0xFF, 0xFF)       // #00F0FF (Positive)
-val ColorAmber = Color(0xFF, 0xB8, 0x00, 0xFF)      // #FFB800 (Warning)
-val ColorRed = Color(0xFF, 0x38, 0x60, 0xFF)        // #FF3860 (Error/Mala)
-val ColorGlassBg = Color(0xAA, 0x0A, 0x0A, 0x14)    // Glass semi-transparent black
-val ColorSurfaceDark = Color(0x12, 0x12, 0x1A, 0xFF)
+// Define modern premium iOS style palette colors
+val ColorBackground = Color(0xFF, 0x0A, 0x0A, 0x0F) // iOS Pure pitch black #000000 / deep gray
+val ColorCyan = Color(0xFF, 0x00, 0x7A, 0xFF)       // Premium iOS Blue #007AFF
+val ColorAmber = Color(0xFF, 0xFF, 0x95, 0x00)      // Premium iOS Orange #FF9500
+val ColorRed = Color(0xFF, 0xFF, 0x3B, 0x30)        // Premium iOS Red #FF3B30
+val ColorGlassBg = Color(0x1F, 0x1F, 0x24, 0xFF)    // solid high-end dark background
+val ColorSurfaceDark = Color(0xFF, 0x1C, 0x1C, 0x1E) // iOS 17 Grouped Surface #1C1C1E
 
-// Define fonts packaged locally
-val OrbitronFontFamily = FontFamily(
-    Font(R.font.orbitron, FontWeight.Normal),
-    Font(R.font.orbitron, FontWeight.Bold)
-)
+// Use clean, modern system sans-serif font families for high professionalism and readability
+val OrbitronFontFamily = FontFamily.Default
+val RajdhaniFontFamily = FontFamily.Default
 
-val RajdhaniFontFamily = FontFamily(
-    Font(R.font.rajdhani, FontWeight.Normal),
-    Font(R.font.rajdhani_bold, FontWeight.Bold)
-)
-
-// Reusable modifiers for Gaming HUD aesthetic
+// Completely removed blur modifiers that cause letters to overlap and distort behind cards.
+// Cards are now structured as high-end solid and semi-solid iOS panels.
 fun Modifier.glassmorphism(
-    borderColor: Color = ColorCyan.copy(alpha = 0.3f),
+    borderColor: Color = Color.Transparent,
     cornerRadius: Dp = 16.dp,
-    blurRadius: Dp = 8.dp
+    blurRadius: Dp = 0.dp
 ): Modifier {
     return this
-        .blur(blurRadius)
-        .background(ColorGlassBg, shape = RoundedCornerShape(cornerRadius))
-        .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(cornerRadius))
+        .background(ColorSurfaceDark, shape = RoundedCornerShape(cornerRadius))
+        .border(BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f)), RoundedCornerShape(cornerRadius))
 }
 
 @Composable
 fun Modifier.neonBorderAnimation(
-    colors: List<Color> = listOf(ColorCyan, Color(0xFF, 0x00, 0xD4, 0xFF), ColorCyan),
+    colors: List<Color> = listOf(ColorCyan, ColorCyan),
     shape: RoundedCornerShape = RoundedCornerShape(16.dp)
 ): Modifier {
-    val infiniteTransition = rememberInfiniteTransition(label = "neon_border_transition")
-    val angle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "neon_border_angle"
+    // Replaced neon blinking lights with elegant clean static iOS borders
+    return this.border(
+        BorderStroke(1.5.dp, colors.firstOrNull() ?: ColorCyan),
+        shape
     )
-
-    return this.drawWithContent {
-        drawContent()
-        val brush = Brush.sweepGradient(
-            colors = colors,
-            center = size.center
-        )
-        drawRoundRect(
-            brush = brush,
-            size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(shape.topStart.toPx(size, this)),
-            style = Stroke(width = 3.dp.toPx())
-        )
-    }
 }
 
 // Define complete Typography
@@ -133,19 +107,19 @@ fun GameGuardTheme(
     val accent = when (accentColorStr.uppercase()) {
         "AMBER" -> ColorAmber
         "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
+        "VIOLET" -> Color(0xFF, 0xAF, 0x52, 0xDE) // iOS violet / purple
         else -> ColorCyan
     }
 
     val colorScheme = if (isDarkMode) {
         darkColorScheme(
             primary = accent,
-            onPrimary = Color.Black,
+            onPrimary = Color.White,
             secondary = ColorAmber,
-            onSecondary = Color.Black,
+            onSecondary = Color.White,
             error = ColorRed,
             onError = Color.White,
-            background = ColorBackground,
+            background = Color(0xFF, 0x00, 0x00, 0x00), // Pure Black iOS Background
             onBackground = Color.White,
             surface = ColorSurfaceDark,
             onSurface = Color.White
@@ -153,12 +127,12 @@ fun GameGuardTheme(
     } else {
         lightColorScheme(
             primary = accent,
-            onPrimary = Color.White,
+            onPrimary = Color.Black,
             secondary = ColorAmber,
             onSecondary = Color.Black,
             error = ColorRed,
             onError = Color.White,
-            background = Color(0xFF, 0xF5, 0xF7, 0xFA), // Light HUD background
+            background = Color(0xFF, 0xF2, 0xF2, 0xF7), // Standard iOS Grouped Background
             onBackground = Color.Black,
             surface = Color.White,
             onSurface = Color.Black

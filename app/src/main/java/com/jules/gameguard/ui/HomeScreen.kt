@@ -391,8 +391,8 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                        .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                        .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                         .padding(16.dp)
                 ) {
                     Column(
@@ -415,8 +415,8 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                        .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                        .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                         .padding(16.dp)
                 ) {
                     Column(
@@ -621,8 +621,8 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(ColorGlassBg, shape = RoundedCornerShape(16.dp))
-                    .border(2.dp, accentColor, RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .padding(24.dp)
             ) {
                 Column(
@@ -800,45 +800,14 @@ fun GameModeActionButton(
     onClick: () -> Unit,
     accentColor: Color
 ) {
-    val transition = rememberInfiniteTransition(label = "glow")
-
-    val shadowRadiusRaw by if (!isActive) {
-        transition.animateFloat(
-            initialValue = 4f,
-            targetValue = 12f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = EaseInOutSine),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "shadow_glow"
-        )
-    } else {
-        remember { mutableStateOf(16f) }
-    }
-
-    val neonModifier = if (isActive) {
-        Modifier.neonBorderAnimation(
-            colors = listOf(accentColor, Color(0xFF, 0x00, 0xD4, 0xFF), accentColor)
-        )
-    } else {
-        Modifier.border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-    }
-
     Box(
         modifier = Modifier
             .size(width = 250.dp, height = 66.dp)
-            .shadow(
-                elevation = shadowRadiusRaw.dp,
-                shape = RoundedCornerShape(24.dp),
-                clip = false,
-                ambientColor = accentColor,
-                spotColor = accentColor
-            )
             .background(
-                if (isActive) accentColor.copy(alpha = 0.15f) else ColorGlassBg,
+                if (isActive) accentColor.copy(alpha = 0.15f) else ColorSurfaceDark,
                 shape = RoundedCornerShape(24.dp)
             )
-            .then(neonModifier)
+            .border(1.dp, if (isActive) accentColor else Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {

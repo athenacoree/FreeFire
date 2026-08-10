@@ -49,6 +49,15 @@
         </service>
 
         <service
+            android:name=".service.GameGuardVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".service.GameModeTileService"
             android:label="Game Mode"
             android:icon="@android:drawable/ic_menu_compass"
