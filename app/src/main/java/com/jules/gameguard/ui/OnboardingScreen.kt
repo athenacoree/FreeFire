@@ -37,11 +37,22 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
     var showOverlayDialog by remember { mutableStateOf(false) }
     var showUsageStatsDialog by remember { mutableStateOf(false) }
 
-    val accentColor = when (preferences.accentColor.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
-        else -> ColorCyan
+    val isDarkMode = preferences.isDarkMode
+
+    val accentColor = if (isDarkMode) {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     fun hasUsageStatsPermission(ctx: Context): Boolean {
@@ -74,7 +85,7 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -101,16 +112,23 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
                 fontFamily = OrbitronFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
-                color = ColorAmber,
+                color = if (isDarkMode) ColorAmber else ColorAmberLight,
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center
+            )
+
+            // Let's introduce Guardy on Onboarding Screen!
+            GuardyMascot(
+                pingMs = 0,
+                pingStatus = "ONBOARDING",
+                isGameModeActive = true,
+                isDarkMode = isDarkMode
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -163,7 +181,7 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
                     fontFamily = OrbitronFontFamily,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = if (isDarkMode) Color.Black else Color.White
                 )
             }
         }

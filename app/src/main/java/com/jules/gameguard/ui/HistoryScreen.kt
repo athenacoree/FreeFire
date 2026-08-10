@@ -58,15 +58,25 @@ fun HistoryScreen(navController: NavController) {
     val scrollState = rememberScrollState()
 
     val preferences = remember { GameGuardPreferences(context.applicationContext) }
+    val isDarkMode = preferences.isDarkMode
+
     val accentColorStr = preferences.accentColor
-    val accentColor = when (accentColorStr.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
-        else -> ColorCyan
+    val accentColor = if (isDarkMode) {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
-    // Database flow setup
     val db = remember { AppDatabase.getDatabase(context.applicationContext) }
     val recordsFlow = remember { db.pingRecordDao().getAllRecordsFlow() }
     val blockedCallsFlow = remember { db.blockedCallDao().getAllBlockedCallsFlow() }
@@ -129,7 +139,6 @@ fun HistoryScreen(navController: NavController) {
                     csvBuilder.append("${record.id},\"$dateStr\",${record.pingMs},${record.packetLossPercent},\"${record.status}\"\n")
                 }
 
-                // Write to cache file
                 try {
                     val sharedFolder = File(context.cacheDir, "shared")
                     sharedFolder.mkdirs()
@@ -174,22 +183,18 @@ fun HistoryScreen(navController: NavController) {
                     val canvas = android.graphics.Canvas(bitmap)
                     val paint = android.graphics.Paint()
 
-                    // Background
                     paint.color = android.graphics.Color.parseColor("#0A0A0F")
                     canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
 
-                    // Header
                     paint.color = android.graphics.Color.parseColor("#00F0FF")
                     paint.textSize = 34f
                     paint.isAntiAlias = true
                     paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.BOLD)
                     canvas.drawText("🛡 GAMEGUARD HUD ANALYTICS", 50f, 70f, paint)
 
-                    // Divider
                     paint.color = android.graphics.Color.parseColor("#1F3860")
                     canvas.drawLine(50f, 95f, 750f, 95f, paint)
 
-                    // Subtitle / Stats
                     paint.color = android.graphics.Color.WHITE
                     paint.textSize = 20f
                     paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.NORMAL)
@@ -203,13 +208,11 @@ fun HistoryScreen(navController: NavController) {
                     canvas.drawText("Pico de Latencia: $maxPing ms", 50f, 220f, paint)
                     canvas.drawText("Pérdida de Paquetes Promedio: $avgLoss%", 50f, 260f, paint)
 
-                    // Draw a simple decorative bar chart
                     paint.color = android.graphics.Color.parseColor("#00F0FF")
-                    canvas.drawRect(50f, 320f, 750f, 550f, paint) // border
+                    canvas.drawRect(50f, 320f, 750f, 550f, paint)
                     paint.color = android.graphics.Color.parseColor("#12121A")
-                    canvas.drawRect(53f, 323f, 747f, 547f, paint) // inner content
+                    canvas.drawRect(53f, 323f, 747f, 547f, paint)
 
-                    // Draw vertical bars for the last 15 entries
                     val lastRecords = records.take(15).reversed()
                     if (lastRecords.isNotEmpty()) {
                         val barCount = lastRecords.size
@@ -241,7 +244,6 @@ fun HistoryScreen(navController: NavController) {
                         }
                     }
 
-                    // Save bitmap to cache
                     val sharedFolder = File(context.cacheDir, "shared")
                     sharedFolder.mkdirs()
                     val imageFile = File(sharedFolder, "ping_analytics.png")
@@ -275,7 +277,6 @@ fun HistoryScreen(navController: NavController) {
             try {
                 val backupObj = JSONObject()
 
-                // 1. Prefs
                 val prefsObj = JSONObject().apply {
                     put("isDarkMode", preferences.isDarkMode)
                     put("accentColor", preferences.accentColor)
@@ -287,7 +288,6 @@ fun HistoryScreen(navController: NavController) {
                 }
                 backupObj.put("preferences", prefsObj)
 
-                // 2. Ping records
                 val pingArr = JSONArray()
                 val records = db.pingRecordDao().getAllRecords()
                 for (r in records) {
@@ -301,7 +301,6 @@ fun HistoryScreen(navController: NavController) {
                 }
                 backupObj.put("pingRecords", pingArr)
 
-                // 3. Blocked calls
                 val blockedArr = JSONArray()
                 withContext(Dispatchers.Main) {
                     for (c in blockedCalls) {
@@ -336,7 +335,6 @@ fun HistoryScreen(navController: NavController) {
             try {
                 val backupObj = JSONObject(jsonStr)
 
-                // 1. Preferences
                 if (backupObj.has("preferences")) {
                     val prefsObj = backupObj.getJSONObject("preferences")
                     withContext(Dispatchers.Main) {
@@ -350,7 +348,6 @@ fun HistoryScreen(navController: NavController) {
                     }
                 }
 
-                // 2. Ping records
                 if (backupObj.has("pingRecords")) {
                     val pingArr = backupObj.getJSONArray("pingRecords")
                     for (i in 0 until pingArr.length()) {
@@ -366,7 +363,6 @@ fun HistoryScreen(navController: NavController) {
                     }
                 }
 
-                // 3. Blocked calls
                 if (backupObj.has("blockedCalls")) {
                     val blockedArr = backupObj.getJSONArray("blockedCalls")
                     for (i in 0 until blockedArr.length()) {
@@ -400,7 +396,7 @@ fun HistoryScreen(navController: NavController) {
                         fontFamily = OrbitronFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
@@ -421,12 +417,12 @@ fun HistoryScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ColorBackground,
-                    titleContentColor = Color.White
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = ColorBackground
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -443,12 +439,11 @@ fun HistoryScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Screen header/explanation card
+            // Screen header/explanation card in glass container
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -462,7 +457,7 @@ fun HistoryScreen(navController: NavController) {
                     )
                     Text(
                         text = "Revisa la estabilidad histórica de tu red, el registro de llamadas bloqueadas durante tus partidas y gestiona copias de seguridad de tus analíticas de optimización.",
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 14.sp,
                         lineHeight = 18.sp
@@ -470,12 +465,11 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Graphic Card
+            // Graphic Card in glass container
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(
@@ -484,7 +478,7 @@ fun HistoryScreen(navController: NavController) {
                 ) {
                     Text(
                         text = "LATENCIA PROMEDIO POR HORA (7D)",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -493,7 +487,7 @@ fun HistoryScreen(navController: NavController) {
                         textAlign = TextAlign.Start
                     )
 
-                    PingHourlyChart(hourlyAverages = hourlyAverages)
+                    PingHourlyChart(hourlyAverages = hourlyAverages, isDarkMode = isDarkMode)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -507,12 +501,11 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Analysis / Worst hours section
+            // Analysis / Worst hours section in glass container
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -528,7 +521,7 @@ fun HistoryScreen(navController: NavController) {
                     if (worstHours.isNotEmpty()) {
                         Text(
                             text = "Evita jugar partidas competitivas en estas franjas de horas críticas detectadas:",
-                            color = Color.White.copy(alpha = 0.9f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 14.sp
                         )
@@ -537,14 +530,17 @@ fun HistoryScreen(navController: NavController) {
                             val formattedHour = String.format("%02d:00 - %02d:59", hourAvg.hour, hourAvg.hour)
                             val statusColor = when {
                                 hourAvg.averagePingMs >= 150 -> ColorRed
-                                hourAvg.averagePingMs >= 80 -> ColorAmber
+                                hourAvg.averagePingMs >= 80 -> if (isDarkMode) ColorAmber else ColorAmberLight
                                 else -> accentColor
                             }
 
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
+                                        RoundedCornerShape(8.dp)
+                                    )
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -562,7 +558,7 @@ fun HistoryScreen(navController: NavController) {
                                     )
                                     Text(
                                         text = formattedHour,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontFamily = RajdhaniFontFamily,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
@@ -581,7 +577,7 @@ fun HistoryScreen(navController: NavController) {
                     } else {
                         Text(
                             text = "No hay suficientes datos recolectados. Activa el monitor para analizar tu red.",
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 14.sp
                         )
@@ -589,18 +585,17 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Blocked Calls list
+            // Blocked Calls list in glass container
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = "[ REGISTRO DE LLAMADAS BLOQUEADAS ]",
-                        color = ColorAmber,
+                        color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -613,14 +608,17 @@ fun HistoryScreen(navController: NavController) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
+                                        RoundedCornerShape(8.dp)
+                                    )
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(call.phoneNumber, color = Color.White, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    Text(sdf.format(Date(call.timestamp)), color = Color.White.copy(alpha = 0.5f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
+                                    Text(call.phoneNumber, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text(sdf.format(Date(call.timestamp)), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
                                 }
                                 Text(
                                     text = "RECHAZADA 🚫",
@@ -634,7 +632,7 @@ fun HistoryScreen(navController: NavController) {
                     } else {
                         Text(
                             text = "No has recibido llamadas molestas durante el Modo Juego recientemente.",
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 13.sp
                         )
@@ -642,12 +640,11 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Utilities & Action Cards
+            // Utilities & Action Cards in glass container
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -692,8 +689,11 @@ fun HistoryScreen(navController: NavController) {
                         Button(
                             onClick = { exportJSONBackup() },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorAmber.copy(alpha = 0.15f), contentColor = ColorAmber),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, ColorAmber),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = (if (isDarkMode) ColorAmber else ColorAmberLight).copy(alpha = 0.15f),
+                                contentColor = if (isDarkMode) ColorAmber else ColorAmberLight
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkMode) ColorAmber else ColorAmberLight),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text("COPIA JSON", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
@@ -702,8 +702,11 @@ fun HistoryScreen(navController: NavController) {
                         Button(
                             onClick = { showRestoreDialog = true },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorAmber.copy(alpha = 0.15f), contentColor = ColorAmber),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, ColorAmber),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = (if (isDarkMode) ColorAmber else ColorAmberLight).copy(alpha = 0.15f),
+                                contentColor = if (isDarkMode) ColorAmber else ColorAmberLight
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkMode) ColorAmber else ColorAmberLight),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text("RESTAURAR JSON", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
@@ -720,8 +723,7 @@ fun HistoryScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(20.dp)
             ) {
                 Column(
@@ -730,7 +732,7 @@ fun HistoryScreen(navController: NavController) {
                 ) {
                     Text(
                         text = "RESTAURAR COPIA JSON",
-                        color = ColorAmber,
+                        color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -753,7 +755,10 @@ fun HistoryScreen(navController: NavController) {
                     ) {
                         Button(
                             onClick = { showRestoreDialog = false },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
+                                contentColor = MaterialTheme.colorScheme.onBackground
+                            ),
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -768,7 +773,10 @@ fun HistoryScreen(navController: NavController) {
                                     showRestoreDialog = false
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorAmber, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDarkMode) ColorAmber else ColorAmberLight,
+                                contentColor = if (isDarkMode) Color.Black else Color.White
+                            ),
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -784,6 +792,7 @@ fun HistoryScreen(navController: NavController) {
 @Composable
 fun PingHourlyChart(
     hourlyAverages: List<HourPingAverage>,
+    isDarkMode: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val maxPing = remember(hourlyAverages) {
@@ -791,12 +800,15 @@ fun PingHourlyChart(
         maxOf(maxFromData, 200.0).toFloat()
     }
 
+    // Resolve color outside Canvas context to avoid composable invocation restriction!
+    val onBgColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+            .border(1.dp, if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
             .padding(vertical = 16.dp, horizontal = 12.dp)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -828,10 +840,10 @@ fun PingHourlyChart(
                 val pingVal = hourData.averagePingMs.toFloat()
 
                 val barColor = when {
-                    pingVal == 0f -> Color.White.copy(alpha = 0.05f)
+                    pingVal == 0f -> if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
                     pingVal >= 150f -> ColorRed
-                    pingVal >= 80f -> ColorAmber
-                    else -> ColorCyan
+                    pingVal >= 80f -> if (isDarkMode) ColorAmber else ColorAmberLight
+                    else -> if (isDarkMode) ColorCyan else ColorCyanLight
                 }
 
                 val ratio = if (pingVal > 0f) (pingVal / maxPing) else 0.02f
@@ -848,7 +860,7 @@ fun PingHourlyChart(
 
                 if (pingVal > 0f) {
                     drawRect(
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = onBgColor,
                         topLeft = Offset(x, y),
                         size = Size(barWidth, 2.dp.toPx())
                     )
@@ -863,11 +875,11 @@ fun PingHourlyChart(
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("00:00", color = Color.White.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
-        Text("06:00", color = Color.White.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
-        Text("12:00", color = Color.White.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
-        Text("18:00", color = Color.White.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
-        Text("23:59", color = Color.White.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
+        Text("00:00", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
+        Text("06:00", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
+        Text("12:00", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
+        Text("18:00", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
+        Text("23:59", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f), fontFamily = OrbitronFontFamily, fontSize = 9.sp)
     }
 }
 
@@ -884,7 +896,7 @@ fun LegendItem(color: Color, text: String) {
         )
         Text(
             text = text,
-            color = Color.White.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             fontFamily = RajdhaniFontFamily,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold

@@ -40,18 +40,28 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
     var selectedGamePkg by remember { mutableStateOf(preferences.exclusiveAppPackage) }
     var showAppPickerDialog by remember { mutableStateOf(false) }
 
-    val accentColor = when (preferences.accentColor.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0xAF, 0x52, 0xDE)
-        else -> ColorCyan
+    val isDarkMode = preferences.isDarkMode
+
+    val accentColor = if (isDarkMode) {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     LaunchedEffect(Unit) {
         val apps = mutableListOf<SimpleAppInfo>()
         val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
         for (appInfo in packages) {
-            // Filter non-system apps or apps with launcher intent (games/apps)
             val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                            (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
             val launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName)
@@ -74,8 +84,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ColorSurfaceDark, RoundedCornerShape(16.dp))
-                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                .glassmorphism(isDarkMode = isDarkMode)
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -89,7 +98,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                 )
                 Text(
                     text = "Selecciona un juego para otorgarle CONEXIÓN EXCLUSIVA. Al activar el Modo Juego, se bloqueará la conexión a internet de todas las demás apps excepto el juego seleccionado.",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                     fontFamily = RajdhaniFontFamily,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -101,8 +110,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ColorSurfaceDark, RoundedCornerShape(16.dp))
-                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                .glassmorphism(isDarkMode = isDarkMode)
                 .padding(16.dp)
         ) {
             Column(
@@ -112,7 +120,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
             ) {
                 Text(
                     text = "JUEGO CONEXIÓN EXCLUSIVA",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     fontFamily = OrbitronFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
@@ -134,7 +142,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                     )
                     Text(
                         text = selectedGamePkg,
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 12.sp
                     )
@@ -150,7 +158,10 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
 
                 Button(
                     onClick = { showAppPickerDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = accentColor,
+                        contentColor = if (isDarkMode) Color.Black else Color.White
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
@@ -167,8 +178,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ColorSurfaceDark, RoundedCornerShape(16.dp))
-                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                .glassmorphism(isDarkMode = isDarkMode)
                 .padding(16.dp)
         ) {
             Column(
@@ -178,7 +188,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
             ) {
                 Text(
                     text = "LANZAMIENTO RÁPIDO Y BOOST",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontFamily = OrbitronFontFamily,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
@@ -186,7 +196,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
 
                 Text(
                     text = "Lanza tu juego directamente con un boost de RAM automático para optimizar la latencia desde el primer segundo.",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     fontFamily = RajdhaniFontFamily,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
@@ -197,7 +207,6 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                         if (selectedGamePkg.isNotEmpty()) {
                             val launchIntent = pm.getLaunchIntentForPackage(selectedGamePkg)
                             if (launchIntent != null) {
-                                // Auto toggle connection monitor
                                 val serviceIntent = Intent(context, ConnectionMonitorService::class.java)
                                 context.startService(serviceIntent)
                                 preferences.isModoJuegoActivo = true
@@ -220,7 +229,12 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                         text = "LANZAR JUEGO AHORA 🚀",
                         fontFamily = OrbitronFontFamily,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedGamePkg.isNotEmpty()) {
+                            if (isDarkMode) Color.Black else Color.White
+                        } else {
+                            Color.Unspecified
+                        }
                     )
                 }
             }
@@ -233,8 +247,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(ColorSurfaceDark, RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(20.dp)
             ) {
                 Column(
@@ -243,13 +256,13 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                 ) {
                     Text(
                         text = "SELECCIONAR JUEGO",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
 
                     LazyColumn(
                         modifier = Modifier
@@ -267,21 +280,24 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                                         showAppPickerDialog = false
                                         Toast.makeText(context, "Juego configurado: ${app.label}", Toast.LENGTH_SHORT).show()
                                     }
-                                    .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
+                                        RoundedCornerShape(8.dp)
+                                    )
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
                                     Text(
                                         text = app.label,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontFamily = RajdhaniFontFamily,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = app.packageName,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                         fontFamily = RajdhaniFontFamily,
                                         fontSize = 12.sp
                                     )
@@ -292,7 +308,10 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
 
                     Button(
                         onClick = { showAppPickerDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f), contentColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
+                            contentColor = MaterialTheme.colorScheme.onBackground
+                        ),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {

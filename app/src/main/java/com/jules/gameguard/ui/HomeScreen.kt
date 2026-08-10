@@ -63,13 +63,24 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
     var lastClosedApps by remember { mutableStateOf(preferences.lastClosedApps) }
     var lastSessionFeedback by remember { mutableStateOf(preferences.lastSessionFeedback) }
 
+    val isDarkMode = preferences.isDarkMode
+
     // Dynamic style color
     val accentColorStr = preferences.accentColor
-    val accentColor = when (accentColorStr.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
-        else -> ColorCyan
+    val accentColor = if (isDarkMode) {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (accentColorStr.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     // Collect real-time monitor stats
@@ -316,12 +327,12 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent, // Transparent to show the beautiful glowing circles!
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent // Scaffolds are transparent to let glowing blobs stand out
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -343,7 +354,21 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                PingGauge(ping = pingMs, status = pingStatus, accentColor = accentColor)
+                // Interactive Mascot Companion Guardy
+                GuardyMascot(
+                    pingMs = pingMs,
+                    pingStatus = pingStatus,
+                    isGameModeActive = isModoJuegoActivo,
+                    lastClosedApps = lastClosedApps,
+                    isDarkMode = isDarkMode
+                )
+
+                PingGauge(
+                    ping = pingMs,
+                    status = pingStatus,
+                    accentColor = accentColor,
+                    isDarkMode = isDarkMode
+                )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -356,14 +381,15 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             triggerActivationSequence()
                         }
                     },
-                    accentColor = accentColor
+                    accentColor = accentColor,
+                    isDarkMode = isDarkMode
                 )
 
                 // Sleek HUD Boost button
                 Button(
                     onClick = { performOneTapBoost() },
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
+                        .fillMaxWidth(0.85f)
                         .height(52.dp)
                         .border(1.5.dp, accentColor, RoundedCornerShape(14.dp)),
                     colors = ButtonDefaults.buttonColors(
@@ -387,12 +413,11 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     }
                 }
 
-                // Real-time 60-second graph
+                // Real-time 60-second graph in glass container
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .glassmorphism(isDarkMode = isDarkMode)
                         .padding(16.dp)
                 ) {
                     Column(
@@ -411,12 +436,11 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     }
                 }
 
-                // RAM & Monitor statistics Card
+                // RAM & Monitor statistics Card in glass container
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .glassmorphism(isDarkMode = isDarkMode)
                         .padding(16.dp)
                 ) {
                     Column(
@@ -621,8 +645,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(24.dp)
             ) {
                 Column(
@@ -631,7 +654,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 ) {
                     Text(
                         text = "[ JUEGO TERMINADO ]",
-                        color = ColorAmber,
+                        color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -640,7 +663,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 
                     Text(
                         text = "¿CÓMO ESTUVO TU SESIÓN?",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
@@ -651,7 +674,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 
                     Text(
                         text = "Tu feedback nos ayuda a calibrar los perfiles de optimización de red de GameGuard.",
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 15.sp,
                         textAlign = TextAlign.Center
@@ -693,7 +716,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = accentColor,
-                                contentColor = Color.Black
+                                contentColor = if (isDarkMode) Color.Black else Color.White
                             ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -712,10 +735,10 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 }
 
 @Composable
-fun PingGauge(ping: Long, status: String, accentColor: Color) {
+fun PingGauge(ping: Long, status: String, accentColor: Color, isDarkMode: Boolean = true) {
     val color = when (status) {
-        "Regular" -> ColorAmber
-        "Mala" -> ColorRed
+        "Regular" -> if (isDarkMode) ColorAmber else ColorAmberLight
+        "Mala" -> if (isDarkMode) ColorRed else ColorRedLight
         "INACTIVO" -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
         else -> accentColor
     }
@@ -749,7 +772,7 @@ fun PingGauge(ping: Long, status: String, accentColor: Color) {
     ) {
         androidx.compose.foundation.Canvas(modifier = Modifier.size(150.dp)) {
             drawArc(
-                color = Color.White.copy(alpha = 0.08f),
+                color = if (isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f),
                 startAngle = 135f,
                 sweepAngle = 270f,
                 useCenter = false,
@@ -798,16 +821,17 @@ fun PingGauge(ping: Long, status: String, accentColor: Color) {
 fun GameModeActionButton(
     isActive: Boolean,
     onClick: () -> Unit,
-    accentColor: Color
+    accentColor: Color,
+    isDarkMode: Boolean = true
 ) {
     Box(
         modifier = Modifier
             .size(width = 250.dp, height = 66.dp)
-            .background(
-                if (isActive) accentColor.copy(alpha = 0.15f) else ColorSurfaceDark,
-                shape = RoundedCornerShape(24.dp)
+            .glassmorphism(
+                borderColor = if (isActive) accentColor else Color.Transparent,
+                cornerRadius = 24.dp,
+                isDarkMode = isDarkMode
             )
-            .border(1.dp, if (isActive) accentColor else Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -838,7 +862,7 @@ fun RealTimePingGraph(pingHistory: List<Long>, accentColor: Color) {
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+            .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
     ) {
         val width = size.width
         val height = size.height

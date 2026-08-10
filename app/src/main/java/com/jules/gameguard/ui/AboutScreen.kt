@@ -27,11 +27,22 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
-    val accentColor = when (preferences.accentColor.uppercase()) {
-        "AMBER" -> ColorAmber
-        "RED" -> ColorRed
-        "VIOLET" -> Color(0xFF, 0x00, 0xD4, 0xFF)
-        else -> ColorCyan
+    val isDarkMode = preferences.isDarkMode
+
+    val accentColor = if (isDarkMode) {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmber
+            "RED" -> ColorRed
+            "VIOLET" -> ColorViolet
+            else -> ColorCyan
+        }
+    } else {
+        when (preferences.accentColor.uppercase()) {
+            "AMBER" -> ColorAmberLight
+            "RED" -> ColorRedLight
+            "VIOLET" -> ColorVioletLight
+            else -> ColorCyanLight
+        }
     }
 
     Scaffold(
@@ -64,12 +75,12 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -102,7 +113,7 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
             )
 
             Text(
-                text = "Versión 2.0.0 (HUD Edition)",
+                text = "Versión 2.5.0 (Mascot & Glass Edition)",
                 fontFamily = RajdhaniFontFamily,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
@@ -111,18 +122,25 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
 
             HorizontalDivider(color = accentColor.copy(alpha = 0.15f))
 
+            // Interactive Mascot Guide Guardy introducing himself
+            GuardyMascot(
+                pingMs = 0,
+                pingStatus = "ACERCA",
+                isGameModeActive = true,
+                isDarkMode = isDarkMode
+            )
+
             // Changelog
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ColorSurfaceDark, shape = RoundedCornerShape(16.dp))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .glassmorphism(isDarkMode = isDarkMode)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "[ REGISTRO DE CAMBIOS ]",
-                        color = ColorAmber,
+                        color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -130,13 +148,15 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                     )
 
                     val changelogLines = listOf(
+                        "• Mascot interactivo Guardy (🦊) con consejos personalizados para gamers.",
+                        "• Interfaz renovada estilo iPhone con pantallas de cristal (Glassmorphism).",
+                        "• Soporte completo para Modo Claro (Frosted Glass) y Modo Oscuro (Obsidian Glass).",
                         "• Integración completa con Glance widgets para pantalla de inicio.",
                         "• Monitoreo y detección automática de Free Fire para activar Game Mode.",
                         "• Gráfico de ping en tiempo real en los últimos 60 segundos.",
                         "• One-Tap Boost para liberar RAM en un solo toque.",
                         "• Soporte para múltiples servidores de ping y lista blanca de apps.",
                         "• Lista de contactos permitidos durante el Modo Juego.",
-                        "• Soporte completo de modo claro/oscuro y selector de color de acento.",
                         "• Backup y restauración de historial en JSON y exportación CSV."
                     )
 
@@ -158,7 +178,7 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                 onClick = {
                     val intent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:support@jules-gameguard.com")
-                        putExtra(Intent.EXTRA_SUBJECT, "Reporte de Bug - GameGuard v2.0")
+                        putExtra(Intent.EXTRA_SUBJECT, "Reporte de Bug - GameGuard v2.5")
                     }
                     try {
                         context.startActivity(intent)
