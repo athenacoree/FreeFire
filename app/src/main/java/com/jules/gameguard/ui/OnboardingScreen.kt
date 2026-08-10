@@ -76,12 +76,7 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val callsGranted = permissions[android.Manifest.permission.ANSWER_PHONE_CALLS] == true
-        if (callsGranted) {
-            showOverlayDialog = true
-        } else {
-            showOverlayDialog = true
-        }
+        showOverlayDialog = true
     }
 
     Scaffold(
@@ -91,33 +86,34 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "GAMEGUARD OPTIMIZER",
-                fontFamily = OrbitronFontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = accentColor,
-                textAlign = TextAlign.Center
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "GameGuard Optimizer",
+                    fontFamily = OrbitronFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp,
+                    color = accentColor,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Conexión Estable y Sin Interrupciones",
+                    fontFamily = RajdhaniFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            Text(
-                text = "CONEXIÓN ESTABLE & SIN INTERRUPCIONES",
-                fontFamily = OrbitronFontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = if (isDarkMode) ColorAmber else ColorAmberLight,
-                letterSpacing = 1.sp,
-                textAlign = TextAlign.Center
-            )
-
-            // Let's introduce Guardy on Onboarding Screen!
+            // Guardy Mascot
             GuardyMascot(
                 pingMs = 0,
                 pingStatus = "ONBOARDING",
@@ -131,33 +127,34 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
                     .glassmorphism(isDarkMode = isDarkMode)
                     .padding(20.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
-                        text = "[ BIENVENIDO RECLUTA ]",
-                        color = accentColor,
+                        text = "Bienvenido a GameGuard",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "GameGuard te permite reducir tu ping en juegos y evitar llamadas que interrumpen tu partida. Para lograrlo, necesitamos configurar algunos permisos vitales en tu sistema.",
+                        text = "GameGuard te permite reducir la latencia en tus partidas y evitar interrupciones por llamadas.",
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
                         fontFamily = RajdhaniFontFamily,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         lineHeight = 20.sp
                     )
 
                     HorizontalDivider(color = accentColor.copy(alpha = 0.15f))
 
                     Text(
-                        text = "1. Llamadas y Estado de Red (DND)\n" +
-                               "2. Superposición de Aplicaciones (HUD Burbuja)\n" +
-                               "3. Estadísticas de Uso (Optimizador de RAM)",
+                        text = "Permisos necesarios:\n" +
+                                "• Gestión de Llamadas (Filtro DND)\n" +
+                                "• Superposición (Burbuja HUD de Ping)\n" +
+                                "• Acceso de Uso (Optimizador de RAM)",
                         color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         lineHeight = 22.sp
                     )
                 }
@@ -171,17 +168,16 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .border(1.dp, accentColor, RoundedCornerShape(12.dp)),
+                    .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             ) {
                 Text(
-                    text = "INICIAR CONFIGURACIÓN",
+                    text = "Iniciar Configuración",
                     fontFamily = OrbitronFontFamily,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkMode) Color.Black else Color.White
+                    color = Color.White
                 )
             }
         }

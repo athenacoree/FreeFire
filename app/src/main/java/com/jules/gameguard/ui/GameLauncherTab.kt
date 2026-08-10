@@ -6,16 +6,19 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -76,32 +79,31 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App selection header
+        // Header Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .glassmorphism(isDarkMode = isDarkMode)
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "[ LANZADOR EXCLUSIVO iOS ]",
-                    color = accentColor,
+                    text = "Lanzador de Juegos",
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontFamily = OrbitronFontFamily,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Selecciona un juego para otorgarle CONEXIÓN EXCLUSIVA. Al activar el Modo Juego, se bloqueará la conexión a internet de todas las demás apps excepto el juego seleccionado.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    text = "Selecciona tu juego principal para asignarle prioridad máxima de red y rendimiento exclusivo en Modo Juego.",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                     fontFamily = RajdhaniFontFamily,
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp
                 )
             }
         }
@@ -111,7 +113,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
             modifier = Modifier
                 .fillMaxWidth()
                 .glassmorphism(isDarkMode = isDarkMode)
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -119,11 +121,11 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "JUEGO CONEXIÓN EXCLUSIVA",
+                    text = "Juego Configurado",
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    fontFamily = OrbitronFontFamily,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    fontFamily = RajdhaniFontFamily,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 if (selectedGamePkg.isNotEmpty()) {
@@ -137,8 +139,9 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                         text = appLabel,
                         color = accentColor,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
                     Text(
                         text = selectedGamePkg,
@@ -148,7 +151,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                     )
                 } else {
                     Text(
-                        text = "NINGÚN JUEGO SELECCIONADO",
+                        text = "Sin juego seleccionado",
                         color = ColorRed,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 16.sp,
@@ -160,45 +163,45 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                     onClick = { showAppPickerDialog = true },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = accentColor,
-                        contentColor = if (isDarkMode) Color.Black else Color.White
+                        contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "SELECCIONAR JUEGO / APP",
+                        text = "Cambiar Juego / App",
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        // Fast Game Launcher Box
+        // Fast Launch Box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .glassmorphism(isDarkMode = isDarkMode)
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "LANZAMIENTO RÁPIDO Y BOOST",
+                    text = "Lanzamiento con Boost Integrado",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontFamily = OrbitronFontFamily,
-                    fontSize = 13.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Lanza tu juego directamente con un boost de RAM automático para optimizar la latencia desde el primer segundo.",
+                    text = "Inicia el juego optimizando automáticamente la memoria RAM y calibrando los sockets de red.",
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     fontFamily = RajdhaniFontFamily,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     textAlign = TextAlign.Center
                 )
 
@@ -220,22 +223,26 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                             Toast.makeText(context, "Por favor, selecciona un juego primero.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     enabled = selectedGamePkg.isNotEmpty()
                 ) {
-                    Text(
-                        text = "LANZAR JUEGO AHORA 🚀",
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedGamePkg.isNotEmpty()) {
-                            if (isDarkMode) Color.Black else Color.White
-                        } else {
-                            Color.Unspecified
-                        }
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.RocketLaunch, contentDescription = "Lanzar", tint = Color.White)
+                        Text(
+                            text = "Lanzar e Iniciar Boost",
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -255,7 +262,7 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "SELECCIONAR JUEGO",
+                        text = "Seleccionar Aplicación",
                         color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 16.sp,
@@ -267,24 +274,24 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 300.dp),
+                            .heightIn(max = 320.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(installedApps) { app ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         selectedGamePkg = app.packageName
                                         preferences.exclusiveAppPackage = app.packageName
                                         showAppPickerDialog = false
-                                        Toast.makeText(context, "Juego configurado: ${app.label}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Juego guardado: ${app.label}", Toast.LENGTH_SHORT).show()
                                     }
                                     .background(
-                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
-                                        RoundedCornerShape(8.dp)
+                                        if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
@@ -306,17 +313,13 @@ fun GameLauncherTab(preferences: GameGuardPreferences) {
                         }
                     }
 
-                    Button(
+                    OutlinedButton(
                         onClick = { showAppPickerDialog = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                            contentColor = MaterialTheme.colorScheme.onBackground
-                        ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "CERRAR",
+                            text = "Cancelar",
                             fontFamily = OrbitronFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold

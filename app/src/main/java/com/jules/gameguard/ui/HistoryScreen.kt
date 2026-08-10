@@ -18,10 +18,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PhoneDisabled
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -319,7 +326,7 @@ fun HistoryScreen(navController: NavController) {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText("GameGuard Backup", jsonStr)
                     clipboard.setPrimaryClip(clip)
-                    Toast.makeText(context, "¡Copia de seguridad copiada al portapapeles en formato JSON!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Copia de seguridad copiada al portapapeles.", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -377,7 +384,7 @@ fun HistoryScreen(navController: NavController) {
                 }
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "¡Copia de seguridad restaurada con éxito!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Copia de seguridad restaurada con éxito", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -392,27 +399,22 @@ fun HistoryScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        text = "HISTORIAL Y ANALÍTICAS",
+                        text = "Estadísticas",
                         fontFamily = OrbitronFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier
-                            .padding(start = 12.dp, end = 8.dp)
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .size(36.dp)
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Text(
-                            text = "◀",
-                            color = accentColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Atrás",
+                            tint = accentColor
                         )
                     }
                 },
@@ -428,7 +430,7 @@ fun HistoryScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(scrollState)
                 .animateContentSize(
                     animationSpec = spring(
@@ -436,28 +438,27 @@ fun HistoryScreen(navController: NavController) {
                         stiffness = Spring.StiffnessLow
                     )
                 ),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Screen header/explanation card in glass container
+            // Screen header card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "[ CONTROL DE RENDIMIENTO ]",
-                        color = accentColor,
+                        text = "Analíticas de Rendimiento",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Revisa la estabilidad histórica de tu red, el registro de llamadas bloqueadas durante tus partidas y gestiona copias de seguridad de tus analíticas de optimización.",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                        text = "Supervisa la estabilidad histórica de tu red, analiza las franjas horarias con mayor latencia y consulta las llamadas bloqueadas.",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 14.sp,
                         lineHeight = 18.sp
@@ -465,24 +466,23 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Graphic Card in glass container
+            // Graphic Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "LATENCIA PROMEDIO POR HORA (7D)",
+                        text = "Latencia Promedio por Hora (Últimos 7 Días)",
                         color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Start
                     )
@@ -494,34 +494,33 @@ fun HistoryScreen(navController: NavController) {
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        LegendItem(color = ColorCyan, text = "Buena (<80 ms)")
-                        LegendItem(color = ColorAmber, text = "Regular (80-150)")
-                        LegendItem(color = ColorRed, text = "Mala (>150 ms)")
+                        LegendItem(color = ColorCyan, text = "Buena (<80ms)")
+                        LegendItem(color = ColorAmber, text = "Regular (80-150ms)")
+                        LegendItem(color = ColorRed, text = "Mala (>150ms)")
                     }
                 }
             }
 
-            // Analysis / Worst hours section in glass container
+            // Worst hours section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "[ FRANGAS DE HORAS CRÍTICAS ]",
+                        text = "Franjas Horarias Críticas",
                         color = ColorRed,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     if (worstHours.isNotEmpty()) {
                         Text(
-                            text = "Evita jugar partidas competitivas en estas franjas de horas críticas detectadas:",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
+                            text = "Para evitar lag durante tus partidas, procura evitar estas franjas:",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 14.sp
                         )
@@ -537,11 +536,11 @@ fun HistoryScreen(navController: NavController) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(
-                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
-                                        RoundedCornerShape(8.dp)
+                                        if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -560,13 +559,13 @@ fun HistoryScreen(navController: NavController) {
                                         text = formattedHour,
                                         color = MaterialTheme.colorScheme.onBackground,
                                         fontFamily = RajdhaniFontFamily,
-                                        fontSize = 14.sp,
+                                        fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
 
                                 Text(
-                                    text = "${hourAvg.averagePingMs.toInt()} ms avg",
+                                    text = "${hourAvg.averagePingMs.toInt()} ms prom",
                                     color = statusColor,
                                     fontFamily = OrbitronFontFamily,
                                     fontSize = 12.sp,
@@ -576,7 +575,7 @@ fun HistoryScreen(navController: NavController) {
                         }
                     } else {
                         Text(
-                            text = "No hay suficientes datos recolectados. Activa el monitor para analizar tu red.",
+                            text = "No se han detectado franjas críticas.",
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 14.sp
@@ -585,21 +584,20 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Blocked Calls list in glass container
+            // Blocked Calls list card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "[ REGISTRO DE LLAMADAS BLOQUEADAS ]",
+                        text = "Llamadas Bloqueadas",
                         color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     if (blockedCalls.isNotEmpty()) {
@@ -608,30 +606,30 @@ fun HistoryScreen(navController: NavController) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(
-                                        if (isDarkMode) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.03f),
-                                        RoundedCornerShape(8.dp)
+                                        if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(call.phoneNumber, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text(call.phoneNumber, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                     Text(sdf.format(Date(call.timestamp)), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
                                 }
                                 Text(
-                                    text = "RECHAZADA 🚫",
+                                    text = "Rechazada",
                                     color = ColorRed,
                                     fontFamily = OrbitronFontFamily,
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     } else {
                         Text(
-                            text = "No has recibido llamadas molestas durante el Modo Juego recientemente.",
+                            text = "No se han registrado llamadas bloqueadas.",
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 13.sp
@@ -640,45 +638,40 @@ fun HistoryScreen(navController: NavController) {
                 }
             }
 
-            // Utilities & Action Cards in glass container
+            // Data Export Utilities Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
-                        text = "[ UTILIDADES DE DATOS HUD ]",
-                        color = accentColor,
+                        text = "Exportación y Respaldo",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
+                        OutlinedButton(
                             onClick = { exportCSV() },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = accentColor.copy(alpha = 0.15f), contentColor = accentColor),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("EXPORTAR CSV", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Exportar CSV", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
 
-                        Button(
+                        OutlinedButton(
                             onClick = { shareGraphAsImage() },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = accentColor.copy(alpha = 0.15f), contentColor = accentColor),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("COMPARTIR IMG", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Compartir Img", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -686,30 +679,20 @@ fun HistoryScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
+                        OutlinedButton(
                             onClick = { exportJSONBackup() },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = (if (isDarkMode) ColorAmber else ColorAmberLight).copy(alpha = 0.15f),
-                                contentColor = if (isDarkMode) ColorAmber else ColorAmberLight
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkMode) ColorAmber else ColorAmberLight),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("COPIA JSON", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Copia JSON", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
 
-                        Button(
+                        OutlinedButton(
                             onClick = { showRestoreDialog = true },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = (if (isDarkMode) ColorAmber else ColorAmberLight).copy(alpha = 0.15f),
-                                contentColor = if (isDarkMode) ColorAmber else ColorAmberLight
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkMode) ColorAmber else ColorAmberLight),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("RESTAURAR JSON", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Restaurar JSON", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -731,7 +714,7 @@ fun HistoryScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "RESTAURAR COPIA JSON",
+                        text = "Restaurar Copia JSON",
                         color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 16.sp,
@@ -745,24 +728,20 @@ fun HistoryScreen(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(150.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
                     )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
+                        OutlinedButton(
                             onClick = { showRestoreDialog = false },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                                contentColor = MaterialTheme.colorScheme.onBackground
-                            ),
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("CANCELAR", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Cancelar", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -774,13 +753,13 @@ fun HistoryScreen(navController: NavController) {
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDarkMode) ColorAmber else ColorAmberLight,
-                                contentColor = if (isDarkMode) Color.Black else Color.White
+                                containerColor = accentColor,
+                                contentColor = Color.White
                             ),
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("RESTAURAR", fontSize = 11.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
+                            Text("Restaurar", fontSize = 12.sp, fontFamily = OrbitronFontFamily, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -800,15 +779,14 @@ fun PingHourlyChart(
         maxOf(maxFromData, 200.0).toFloat()
     }
 
-    // Resolve color outside Canvas context to avoid composable invocation restriction!
     val onBgColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-            .border(1.dp, if (isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isDarkMode) Color.Black.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.04f))
             .padding(vertical = 16.dp, horizontal = 12.dp)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -898,8 +876,8 @@ fun LegendItem(color: Color, text: String) {
             text = text,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             fontFamily = RajdhaniFontFamily,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
