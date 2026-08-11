@@ -29,7 +29,12 @@ class GameGuardPreferences(context: Context) {
         private const val KEY_ACTIVE_PERFORMANCE_PROFILE = "active_performance_profile" // "BATTERY", "BALANCED", "ULTRA_GAMING"
         private const val KEY_DNS_OPTIMIZATION_ENABLED = "dns_optimization_enabled"
         private const val KEY_DNS_PROVIDER = "dns_provider" // "CLOUDFLARE", "GOOGLE", "ADGUARD"
+        private const val KEY_CALL_BLOCKING_ENABLED = "call_blocking_enabled"
     }
+
+    var isCallBlockingEnabled: Boolean
+        get() = prefs.getBoolean(KEY_CALL_BLOCKING_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_CALL_BLOCKING_ENABLED, value).apply()
 
     var isModoJuegoActivo: Boolean
         get() = prefs.getBoolean(KEY_MODO_JUEGO_ACTIVO, false)

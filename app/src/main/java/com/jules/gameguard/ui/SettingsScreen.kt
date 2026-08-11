@@ -55,7 +55,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
     val allowedContacts by db.allowedContactDao().getAllAllowedContactsFlow().collectAsState(initial = emptyList())
 
     // Settings state
-    var blockCallsEnabled by remember { mutableStateOf(preferences.isModoJuegoActivo) }
+    var blockCallsEnabled by remember { mutableStateOf(preferences.isCallBlockingEnabled) }
     var activeServerIp by remember { mutableStateOf(preferences.configurableServer) }
     var isConnectionMonitorRunning by remember { mutableStateOf(ConnectionMonitorService.isRunning.value) }
 
@@ -471,7 +471,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             checked = blockCallsEnabled,
                             onCheckedChange = { isChecked ->
                                 blockCallsEnabled = isChecked
-                                preferences.isModoJuegoActivo = isChecked
+                                preferences.isCallBlockingEnabled = isChecked
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,

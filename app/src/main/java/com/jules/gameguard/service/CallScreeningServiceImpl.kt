@@ -23,7 +23,7 @@ class CallScreeningServiceImpl : CallScreeningService() {
 
         val rawNumber = callDetails.handle?.schemeSpecificPart ?: ""
 
-        if (prefs.isModoJuegoActivo) {
+        if (prefs.isModoJuegoActivo && prefs.isCallBlockingEnabled) {
             // Check if number is whitelisted
             var isWhitelisted = false
             runBlocking(Dispatchers.IO) {
