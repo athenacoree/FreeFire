@@ -333,6 +333,11 @@ class ConnectionMonitorService : Service() {
         // Check for ping threshold alert
         checkPingAlert(finalPing)
 
+        // Connection freeze auto-recalibration check for congested environments (like public Wi-Fi in Cuba)
+        if (representativePing == -1L || averageLoss > 50) {
+            recalibrateNetworkSockets()
+        }
+
         // Save to Room and prune old records
         val record = PingRecord(
             timestamp = System.currentTimeMillis(),
@@ -373,6 +378,27 @@ class ConnectionMonitorService : Service() {
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
+                }
+            }
+        }
+    }
+
+    private fun recalibrateNetworkSockets() {
+        // Silently reset VPN service to clear frozen network routes
+        if (preferences.isExclusiveConnectionEnabled && preferences.exclusiveAppPackage.isNotEmpty()) {
+            val vpnIntentStop = Intent(this, GameGuardVpnService::class.java).apply {
+                action = GameGuardVpnService.ACTION_STOP
+            }
+            startService(vpnIntentStop)
+
+            // Restart after a small delay of 500ms
+            serviceScope.launch {
+                delay(500)
+                if (preferences.isExclusiveConnectionEnabled && isRunning.value) {
+                    val vpnIntentStart = Intent(this@ConnectionMonitorService, GameGuardVpnService::class.java).apply {
+                        action = GameGuardVpnService.ACTION_START
+                    }
+                    startService(vpnIntentStart)
                 }
             }
         }
@@ -554,12 +580,6 @@ fun OverlayView(
     val ping = state?.pingMs ?: 0L
     val status = state?.status ?: "Buena"
 
-    val activeColor = when (status) {
-        "Regular" -> ColorAmber
-        "Mala" -> ColorRed
-        else -> color
-    }
-
     // iOS Dynamic Pill HUD State: Cycle through Ping, Battery Level, CPU Temp, FPS
     var pillDisplayIndex by remember { mutableStateOf(0) }
     val displayOptions = listOf("PING", "BATERÍA", "CPU TEMP", "ESTADO")
@@ -574,6 +594,13 @@ fun OverlayView(
     val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 100
     val tempCelsius = rawTemp / 10.0
     val tempStr = "${(tempCelsius * 10).roundToInt() / 10.0}°C🌡"
+
+    val activeColor = when {
+        tempCelsius > 42.0 -> ColorRed
+        status == "Regular" -> ColorAmber
+        status == "Mala" -> ColorRed
+        else -> color
+    }
 
     // Calculate real-time rendering FPS of the overlay/display
     var fps by remember { mutableStateOf(60) }
@@ -601,7 +628,7 @@ fun OverlayView(
     val textToDisplay = when (pillDisplayIndex) {
         0 -> "$ping ms"
         1 -> "$batteryPct%🔋"
-        2 -> tempStr
+        2 -> if (tempCelsius > 42.0) "$tempStr ⚠️ ¡HOT!" else tempStr
         else -> "$fps FPS⚡"
     }
 

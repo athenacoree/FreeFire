@@ -38,6 +38,9 @@ class GameGuardVpnService : VpnService() {
         builder.addAddress("10.0.0.2", 32)
         builder.addRoute("0.0.0.0", 0)
 
+        // MTU Optimization (1380 bytes) to prevent packet fragmentation and loss on congested Wi-Fi (like ETECSA)
+        builder.setMtu(1380)
+
         // Custom DNS selection if enabled
         if (prefs.isDnsOptimizationEnabled) {
             val dnsSelected = when (prefs.dnsProvider.uppercase()) {
