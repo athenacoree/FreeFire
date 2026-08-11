@@ -104,6 +104,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = {

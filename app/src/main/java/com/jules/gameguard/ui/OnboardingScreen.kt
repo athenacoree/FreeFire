@@ -85,6 +85,7 @@ fun OnboardingScreen(navController: NavController, preferences: GameGuardPrefere
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(paddingValues)
                 .padding(horizontal = 20.dp, vertical = 12.dp)
                 .verticalScroll(scrollState),
