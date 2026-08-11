@@ -549,6 +549,7 @@ fun OverlayView(
     onDragEnd: () -> Unit,
     color: Color
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val state by stateFlow.collectAsState()
     val ping = state?.pingMs ?: 0L
     val status = state?.status ?: "Buena"
@@ -563,11 +564,45 @@ fun OverlayView(
     var pillDisplayIndex by remember { mutableStateOf(0) }
     val displayOptions = listOf("PING", "BATERÍA", "CPU TEMP", "ESTADO")
 
+    // Get real battery percentage and device temperature
+    val batteryIntent = remember(context, pillDisplayIndex) {
+        context.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+    }
+    val rawTemp = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+    val level = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+    val scale = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1) ?: -1
+    val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 100
+    val tempCelsius = rawTemp / 10.0
+    val tempStr = "${(tempCelsius * 10).roundToInt() / 10.0}°C🌡"
+
+    // Calculate real-time rendering FPS of the overlay/display
+    var fps by remember { mutableStateOf(60) }
+    LaunchedEffect(Unit) {
+        var lastFrameTimeNanos = 0L
+        val frameTimes = LongArray(10)
+        var frameIndex = 0
+        while (isActive) {
+            withFrameNanos { frameTimeNanos ->
+                if (lastFrameTimeNanos > 0) {
+                    val frameTime = frameTimeNanos - lastFrameTimeNanos
+                    frameTimes[frameIndex] = frameTime
+                    frameIndex = (frameIndex + 1) % frameTimes.size
+                    val avgFrameTime = frameTimes.filter { it > 0 }.average()
+                    if (avgFrameTime > 0) {
+                        val calculatedFps = (1_000_000_000.0 / avgFrameTime).roundToInt()
+                        fps = calculatedFps.coerceIn(30, 120)
+                    }
+                }
+                lastFrameTimeNanos = frameTimeNanos
+            }
+        }
+    }
+
     val textToDisplay = when (pillDisplayIndex) {
         0 -> "$ping ms"
-        1 -> "87%🔋"
-        2 -> "38.2°C🌡"
-        else -> "60 FPS⚡"
+        1 -> "$batteryPct%🔋"
+        2 -> tempStr
+        else -> "$fps FPS⚡"
     }
 
     Row(
