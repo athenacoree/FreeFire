@@ -135,6 +135,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Scaffold(
                             containerColor = Color.Transparent,
+                            contentWindowInsets = WindowInsets(0.dp),
                             bottomBar = {
                                 val navBackStackEntry by navController.currentBackStackEntryFlow.collectAsState(initial = null)
                                 val destination = navBackStackEntry?.destination?.route
@@ -148,6 +149,7 @@ class MainActivity : ComponentActivity() {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .navigationBarsPadding()
                                             .padding(horizontal = 16.dp, vertical = 12.dp)
                                     ) {
                                         Surface(

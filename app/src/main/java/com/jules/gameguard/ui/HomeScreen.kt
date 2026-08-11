@@ -293,6 +293,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = {
