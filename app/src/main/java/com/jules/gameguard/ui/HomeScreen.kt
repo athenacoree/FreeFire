@@ -24,14 +24,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -208,7 +216,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 
             if (activityManager != null && usageStatsManager != null) {
                 val endTime = System.currentTimeMillis()
-                val startTime = endTime - 12 * 60 * 60 * 1000 // Last 12h
+                val startTime = endTime - 12 * 60 * 60 * 1000
                 val usageStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime) ?: emptyList()
 
                 val whitelisted = db.whitelistedAppDao().getAllWhitelistedApps().map { it.packageName }.toSet()
@@ -230,7 +238,6 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     } catch (e: Exception) {}
                 }
 
-                // If empty, find fallback installed user apps to simulate boost
                 if (appsToKill.isEmpty()) {
                     val installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
                     for (appInfo in installedApps) {
@@ -247,7 +254,6 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     }
                 }
 
-                // Kill apps
                 for (app in appsToKill) {
                     activityManager.killBackgroundProcesses(app.packageName)
                 }
@@ -267,13 +273,13 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 
                 withContext(Dispatchers.Main) {
                     val message = if (appsKilledCount > 0) {
-                        "¡BOOST COMPLETO! Se cerraron $appsKilledCount apps y se liberaron $estimatedRamMb MB de RAM."
+                        "¡Boost Completo! Se cerraron $appsKilledCount apps y se liberaron $estimatedRamMb MB de RAM."
                     } else {
-                        "¡BOOST COMPLETO! Memoria RAM ya optimizada."
+                        "¡Boost Completo! Memoria RAM optimizada al máximo."
                     }
                     Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                     val labels = appsToKill.map { it.label }.joinToString(", ")
-                    preferences.lastClosedApps = labels.ifEmpty { " RAM Optimizada" }
+                    preferences.lastClosedApps = labels.ifEmpty { "RAM Optimizada" }
                     lastClosedApps = preferences.lastClosedApps
                 }
             }
@@ -290,18 +296,23 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .background(if (isModoJuegoActivo) accentColor else ColorRed, shape = CircleShape)
+                                .size(10.dp)
+                                .background(
+                                    if (isModoJuegoActivo) (if (isDarkMode) ColorGreen else ColorGreenLight) else ColorRed,
+                                    shape = CircleShape
+                                )
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "GAMEGUARD HUD",
+                            text = "GameGuard",
                             fontFamily = OrbitronFontFamily,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
+                            fontSize = 20.sp,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -311,28 +322,40 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                         onClick = { navController.navigate("history") },
                         modifier = Modifier
                             .padding(end = 6.dp)
-                            .background(Color.White.copy(alpha = 0.05f), CircleShape)
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), CircleShape)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
                     ) {
-                        Text("📊", color = accentColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.BarChart,
+                            contentDescription = "Estadísticas",
+                            tint = accentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                     IconButton(
                         onClick = { navController.navigate("settings") },
                         modifier = Modifier
                             .padding(end = 12.dp)
-                            .background(Color.White.copy(alpha = 0.05f), CircleShape)
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), CircleShape)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
                     ) {
-                        Text("⚙", color = accentColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Ajustes",
+                            tint = accentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent, // Transparent to show the beautiful glowing circles!
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = Color.Transparent // Scaffolds are transparent to let glowing blobs stand out
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -344,7 +367,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .animateContentSize(
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -352,9 +375,9 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                         )
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // Interactive Mascot Companion Guardy
+                // Interactive Guardy Mascot Companion
                 GuardyMascot(
                     pingMs = pingMs,
                     pingStatus = pingStatus,
@@ -363,6 +386,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     isDarkMode = isDarkMode
                 )
 
+                // iOS Ring Gauge Dashboard
                 PingGauge(
                     ping = pingMs,
                     status = pingStatus,
@@ -370,8 +394,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     isDarkMode = isDarkMode
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
+                // iOS Main Action Button Toggle
                 GameModeActionButton(
                     isActive = isModoJuegoActivo,
                     onClick = {
@@ -385,75 +408,94 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     isDarkMode = isDarkMode
                 )
 
-                // Sleek HUD Boost button
+                // iOS One-Tap Boost Button
                 Button(
                     onClick = { performOneTapBoost() },
                     modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .height(52.dp)
-                        .border(1.5.dp, accentColor, RoundedCornerShape(14.dp)),
+                        .fillMaxWidth()
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = accentColor.copy(alpha = 0.1f),
-                        contentColor = accentColor
+                        containerColor = accentColor,
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("⚡", fontSize = 18.sp)
+                        Icon(
+                            Icons.Default.FlashOn,
+                            contentDescription = "Boost",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Text(
-                            text = "ONE-TAP BOOST",
+                            text = "One-Tap RAM Boost",
                             fontFamily = OrbitronFontFamily,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            letterSpacing = 1.sp
+                            fontSize = 15.sp
                         )
                     }
                 }
 
-                // Real-time 60-second graph in glass container
+                // Real-time 60-second graph card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .glassmorphism(isDarkMode = isDarkMode)
-                        .padding(16.dp)
+                        .padding(18.dp)
                 ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "[ GRÁFICA EN TIEMPO REAL - ÚLTIMOS 60S ]",
-                            color = accentColor,
-                            fontFamily = OrbitronFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.5.sp
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Latencia en Tiempo Real",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = OrbitronFontFamily,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Últimos 60s",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
-                        RealTimePingGraph(pingHistory = realtimePingHistory, accentColor = accentColor)
+                        RealTimePingGraph(
+                            pingHistory = realtimePingHistory,
+                            accentColor = accentColor,
+                            isDarkMode = isDarkMode
+                        )
                     }
                 }
 
-                // RAM & Monitor statistics Card in glass container
+                // Optimization Details Grouped Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .glassmorphism(isDarkMode = isDarkMode)
-                        .padding(16.dp)
+                        .padding(18.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            text = "[ DETALLES DE OPTIMIZACIÓN HUD ]",
-                            color = accentColor,
+                            text = "Estado de Optimización",
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontFamily = OrbitronFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
                         )
 
                         Row(
@@ -462,23 +504,23 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "BLOQUEO DE LLAMADAS (DND):",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                text = "Bloqueo de Llamadas (DND)",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium
                             )
-                            val dndColor = if (isModoJuegoActivo) accentColor else ColorRed
+                            val dndColor = if (isModoJuegoActivo) (if (isDarkMode) ColorGreen else ColorGreenLight) else ColorRed
                             Text(
-                                text = if (isModoJuegoActivo) "ACTIVO" else "INACTIVO",
+                                text = if (isModoJuegoActivo) "Activo" else "Inactivo",
                                 color = dndColor,
                                 fontFamily = OrbitronFontFamily,
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -486,11 +528,11 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "TOTAL RAM LIBERADA ACUMULADA:",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                text = "Total RAM Liberada",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "$totalRamCleared MB",
@@ -501,30 +543,30 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "ÚLTIMAS APPS LIBERADAS:",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                text = "Últimas Apps Cerradas",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium
                             )
                             if (lastClosedApps.isNotEmpty()) {
                                 Text(
                                     text = lastClosedApps,
-                                    color = accentColor.copy(alpha = 0.85f),
+                                    color = accentColor,
                                     fontFamily = RajdhaniFontFamily,
                                     fontSize = 13.sp,
                                     lineHeight = 16.sp
                                 )
                             } else {
                                 Text(
-                                    text = "Ninguna app cerrada recientemente. Libera RAM para optimizar.",
+                                    text = "Sin apps cerradas recientemente.",
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                                     fontFamily = RajdhaniFontFamily,
                                     fontSize = 13.sp
@@ -532,7 +574,7 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -540,19 +582,19 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "ESTADO ÚLTIMA SESIÓN:",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                text = "Calidad Última Sesión",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium
                             )
-                            val feedbackText = lastSessionFeedback.ifEmpty { "SIN REGISTRO" }
+                            val feedbackText = lastSessionFeedback.ifEmpty { "Sin registro" }
                             val feedbackColor = if (feedbackText.uppercase().contains("BUENA")) accentColor else if (feedbackText.uppercase().contains("PROBLEMA")) ColorRed else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             Text(
-                                text = feedbackText.uppercase(),
+                                text = feedbackText,
                                 color = feedbackColor,
                                 fontFamily = OrbitronFontFamily,
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -560,25 +602,23 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                 }
 
                 AnimatedVisibility(visible = isModoJuegoActivo) {
-                    Button(
+                    OutlinedButton(
                         onClick = { deactivateAll() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp)
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ColorRed.copy(alpha = 0.15f),
+                            .padding(top = 4.dp)
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = ColorRed
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.2.dp, ColorRed),
-                        shape = RoundedCornerShape(12.dp)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ColorRed),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = "DESACTIVAR TODO (UN TAP)",
+                            text = "Desactivar Modo Juego",
                             fontFamily = OrbitronFontFamily,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -653,16 +693,15 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "[ JUEGO TERMINADO ]",
+                        text = "Juego Terminado",
                         color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "¿CÓMO ESTUVO TU SESIÓN?",
+                        text = "¿Cómo estuvo tu sesión?",
                         color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
                         fontSize = 18.sp,
@@ -670,17 +709,17 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                         textAlign = TextAlign.Center
                     )
 
-                    HorizontalDivider(color = accentColor.copy(alpha = 0.3f), thickness = 1.dp)
+                    HorizontalDivider(color = accentColor.copy(alpha = 0.2f), thickness = 1.dp)
 
                     Text(
-                        text = "Tu feedback nos ayuda a calibrar los perfiles de optimización de red de GameGuard.",
+                        text = "Tu opinión ayuda a calibrar los perfiles de red de GameGuard.",
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 15.sp,
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -697,10 +736,10 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                                 containerColor = ColorRed,
                                 contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
-                                text = "CON PROBLEMAS",
+                                text = "Con Problemas",
                                 fontFamily = OrbitronFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -716,12 +755,12 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = accentColor,
-                                contentColor = if (isDarkMode) Color.Black else Color.White
+                                contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
-                                text = "BUENA",
+                                text = "Excelente",
                                 fontFamily = OrbitronFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -743,48 +782,34 @@ fun PingGauge(ping: Long, status: String, accentColor: Color, isDarkMode: Boolea
         else -> accentColor
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse_trans")
-    val scale by if (status == "BUENA" && ping > 0) {
-        infiniteTransition.animateFloat(
-            initialValue = 1.0f,
-            targetValue = 1.03f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse"
-        )
-    } else {
-        remember { mutableStateOf(1.0f) }
-    }
-
     val animatedSweepAngle by animateFloatAsState(
-        targetValue = if (ping > 0) ((ping.coerceIn(0, 200) / 200f) * 360f) else 0f,
+        targetValue = if (ping > 0) ((ping.coerceIn(0, 200) / 200f) * 270f) else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "sweep_angle"
     )
 
     Box(
         modifier = Modifier
-            .size(160.dp)
-            .scale(scale),
+            .size(170.dp),
         contentAlignment = Alignment.Center
     ) {
-        androidx.compose.foundation.Canvas(modifier = Modifier.size(150.dp)) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(160.dp)) {
+            // Background track
             drawArc(
-                color = if (isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f),
+                color = if (isDarkMode) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f),
                 startAngle = 135f,
                 sweepAngle = 270f,
                 useCenter = false,
-                style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
             )
+            // Active gauge arc
             if (ping > 0) {
                 drawArc(
                     color = color,
                     startAngle = 135f,
-                    sweepAngle = (animatedSweepAngle * 270f / 360f),
+                    sweepAngle = animatedSweepAngle,
                     useCenter = false,
-                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(width = 14.dp.toPx(), cap = StrokeCap.Round)
                 )
             }
         }
@@ -794,25 +819,30 @@ fun PingGauge(ping: Long, status: String, accentColor: Color, isDarkMode: Boolea
                 text = if (ping > 0) "$ping" else "--",
                 color = color,
                 fontFamily = OrbitronFontFamily,
-                fontSize = 32.sp,
+                fontSize = 36.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "MS PING",
+                text = "ms latencia",
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontFamily = OrbitronFontFamily,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Normal,
-                letterSpacing = 1.sp
-            )
-            Text(
-                text = status.uppercase(),
-                color = color.copy(alpha = 0.8f),
                 fontFamily = RajdhaniFontFamily,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
             )
+            Spacer(modifier = Modifier.height(2.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = color.copy(alpha = 0.15f)
+            ) {
+                Text(
+                    text = if (status == "INACTIVO") "Modo Espera" else status,
+                    color = color,
+                    fontFamily = OrbitronFontFamily,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }
@@ -824,45 +854,52 @@ fun GameModeActionButton(
     accentColor: Color,
     isDarkMode: Boolean = true
 ) {
-    Box(
+    val activeColor = if (isDarkMode) ColorGreen else ColorGreenLight
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (isActive) activeColor.copy(alpha = 0.15f) else (if (isDarkMode) Color(0xFF2C2C2E) else Color.White),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isActive) activeColor else (if (isDarkMode) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f))
+        ),
+        shadowElevation = if (isDarkMode) 4.dp else 2.dp,
         modifier = Modifier
-            .size(width = 250.dp, height = 66.dp)
-            .glassmorphism(
-                borderColor = if (isActive) accentColor else Color.Transparent,
-                cornerRadius = 24.dp,
-                isDarkMode = isDarkMode
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .height(56.dp)
     ) {
         Row(
+            modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
-                    .background(if (isActive) accentColor else ColorRed, shape = CircleShape)
+                    .size(10.dp)
+                    .background(if (isActive) activeColor else ColorRed, shape = CircleShape)
             )
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = if (isActive) "MODO JUEGO: ACTIVO" else "ACTIVAR MODO JUEGO",
-                color = if (isActive) accentColor else MaterialTheme.colorScheme.onBackground,
+                text = if (isActive) "Modo Juego Activo" else "Activar Modo Juego",
+                color = if (isActive) activeColor else MaterialTheme.colorScheme.onBackground,
                 fontFamily = OrbitronFontFamily,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
 @Composable
-fun RealTimePingGraph(pingHistory: List<Long>, accentColor: Color) {
+fun RealTimePingGraph(pingHistory: List<Long>, accentColor: Color, isDarkMode: Boolean = true) {
     androidx.compose.foundation.Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
-            .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+            .height(90.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isDarkMode) Color.Black.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.04f))
+            .padding(vertical = 8.dp, horizontal = 4.dp)
     ) {
         val width = size.width
         val height = size.height
@@ -871,25 +908,47 @@ fun RealTimePingGraph(pingHistory: List<Long>, accentColor: Color) {
             val stepX = width / (pingHistory.size - 1)
             val maxPing = maxOf(pingHistory.maxOrNull() ?: 100L, 120L).toFloat()
 
-            // Draw line
-            for (i in 0 until pingHistory.size - 1) {
-                val x1 = i * stepX
-                val y1 = height - (pingHistory[i].toFloat() / maxPing * height * 0.8f)
-                val x2 = (i + 1) * stepX
-                val y2 = height - (pingHistory[i + 1].toFloat() / maxPing * height * 0.8f)
+            val path = Path()
+            val fillPath = Path()
 
-                drawLine(
-                    color = accentColor,
-                    start = Offset(x1, y1),
-                    end = Offset(x2, y2),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
+            for (i in 0 until pingHistory.size) {
+                val x = i * stepX
+                val y = height - (pingHistory[i].toFloat() / maxPing * height * 0.85f)
+
+                if (i == 0) {
+                    path.moveTo(x, y)
+                    fillPath.moveTo(x, height)
+                    fillPath.lineTo(x, y)
+                } else {
+                    val prevX = (i - 1) * stepX
+                    val prevY = height - (pingHistory[i - 1].toFloat() / maxPing * height * 0.85f)
+                    val cx = (prevX + x) / 2
+                    path.cubicTo(cx, prevY, cx, y, x, y)
+                    fillPath.cubicTo(cx, prevY, cx, y, x, y)
+                }
             }
+
+            fillPath.lineTo(width, height)
+            fillPath.close()
+
+            // Draw gradient fill under line
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(accentColor.copy(alpha = 0.35f), Color.Transparent)
+                )
+            )
+
+            // Draw smooth line
+            drawPath(
+                path = path,
+                color = accentColor,
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+            )
         } else {
-            // Draw a flat center line if history is empty
+            // Draw baseline if history is empty
             drawLine(
-                color = accentColor.copy(alpha = 0.3f),
+                color = accentColor.copy(alpha = 0.25f),
                 start = Offset(0f, height / 2),
                 end = Offset(width, height / 2),
                 strokeWidth = 1.dp.toPx()

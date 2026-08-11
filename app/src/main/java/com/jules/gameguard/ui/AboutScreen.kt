@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -50,27 +52,22 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
             TopAppBar(
                 title = {
                     Text(
-                        text = "ACERCA DE",
+                        text = "Acerca de",
                         fontFamily = OrbitronFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier
-                            .padding(start = 12.dp, end = 8.dp)
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .size(36.dp)
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Text(
-                            text = "◀",
-                            color = accentColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Atrás",
+                            tint = accentColor
                         )
                     }
                 },
@@ -86,7 +83,7 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -94,35 +91,39 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .background(accentColor.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-                    .border(2.dp, accentColor, RoundedCornerShape(20.dp)),
+                    .background(accentColor.copy(alpha = 0.12f), RoundedCornerShape(22.dp))
+                    .border(1.5.dp, accentColor, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "🛡",
-                    fontSize = 36.sp
+                Icon(
+                    Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(42.dp)
                 )
             }
 
-            Text(
-                text = "GAMEGUARD OPTIMIZER",
-                fontFamily = OrbitronFontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Text(
-                text = "Versión 2.5.0 (Mascot & Glass Edition)",
-                fontFamily = RajdhaniFontFamily,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Bold
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "GameGuard Optimizer",
+                    fontFamily = OrbitronFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Versión 2.5 (Pro Glass Edition)",
+                    fontFamily = RajdhaniFontFamily,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
             HorizontalDivider(color = accentColor.copy(alpha = 0.15f))
 
-            // Interactive Mascot Guide Guardy introducing himself
+            // Companion Guardy
             GuardyMascot(
                 pingMs = 0,
                 pingStatus = "ACERCA",
@@ -130,34 +131,31 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                 isDarkMode = isDarkMode
             )
 
-            // Changelog
+            // Changelog Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "[ REGISTRO DE CAMBIOS ]",
+                        text = "Novedades y Registro de Cambios",
                         color = if (isDarkMode) ColorAmber else ColorAmberLight,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     val changelogLines = listOf(
-                        "• Mascot interactivo Guardy (🦊) con consejos personalizados para gamers.",
-                        "• Interfaz renovada estilo iPhone con pantallas de cristal (Glassmorphism).",
-                        "• Soporte completo para Modo Claro (Frosted Glass) y Modo Oscuro (Obsidian Glass).",
-                        "• Integración completa con Glance widgets para pantalla de inicio.",
-                        "• Monitoreo y detección automática de Free Fire para activar Game Mode.",
-                        "• Gráfico de ping en tiempo real en los últimos 60 segundos.",
-                        "• One-Tap Boost para liberar RAM en un solo toque.",
-                        "• Soporte para múltiples servidores de ping y lista blanca de apps.",
-                        "• Lista de contactos permitidos durante el Modo Juego.",
-                        "• Backup y restauración de historial en JSON y exportación CSV."
+                        "• Guardy (🦊): Mascota interactiva con recomendaciones en tiempo real.",
+                        "• Interfaz iOS Glassmorphism en Modos Claro y Oscuro.",
+                        "• Segmented Controls y navegación estilo iOS.",
+                        "• Detección y optimización automática para Free Fire y otros juegos.",
+                        "• Gráfico de ping dinámico en tiempo real.",
+                        "• One-Tap Boost de memoria RAM.",
+                        "• Filtros de llamadas entrantes y lista blanca de contactos.",
+                        "• Respaldo y exportación de datos en formato JSON y CSV."
                     )
 
                     changelogLines.forEach { line ->
@@ -172,13 +170,11 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
+            OutlinedButton(
                 onClick = {
                     val intent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:support@jules-gameguard.com")
-                        putExtra(Intent.EXTRA_SUBJECT, "Reporte de Bug - GameGuard v2.5")
+                        putExtra(Intent.EXTRA_SUBJECT, "Feedback GameGuard v2.5")
                     }
                     try {
                         context.startActivity(intent)
@@ -188,15 +184,15 @@ fun AboutScreen(navController: NavController, preferences: GameGuardPreferences)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
-                    .border(1.dp, ColorRed, RoundedCornerShape(10.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorRed.copy(alpha = 0.1f), contentColor = ColorRed),
-                shape = RoundedCornerShape(10.dp)
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorRed),
+                border = androidx.compose.foundation.BorderStroke(1.dp, ColorRed)
             ) {
                 Text(
-                    text = "REPORTAR ERROR / COMPARTIR FEEDBACK",
+                    text = "Reportar Error / Feedback",
                     fontFamily = OrbitronFontFamily,
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

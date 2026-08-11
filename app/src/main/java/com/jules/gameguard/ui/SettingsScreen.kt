@@ -15,10 +15,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhoneCallback
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -98,44 +108,34 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             TopAppBar(
                 title = {
                     Text(
-                        text = "CONFIGURACIÓN HUD",
+                        text = "Ajustes",
                         fontFamily = OrbitronFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier
-                            .padding(start = 12.dp, end = 8.dp)
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .size(36.dp)
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Text(
-                            text = "◀",
-                            color = accentColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Atrás",
+                            tint = accentColor
                         )
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = { navController.navigate("about") },
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .size(36.dp)
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text(
-                            text = "ℹ",
-                            color = accentColor,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "Acerca de",
+                            tint = accentColor
                         )
                     }
                 },
@@ -151,7 +151,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(scrollState)
                 .animateContentSize(
                     animationSpec = spring(
@@ -159,26 +159,31 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         stiffness = Spring.StiffnessLow
                     )
                 ),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Theme Configuration Card
+            // Theme & Accent Color Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "ESTILO Y APARIENCIA",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Palette, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Apariencia y Tema",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -187,11 +192,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Modo Oscuro HUD",
+                                text = "Modo Oscuro",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                         Switch(
@@ -201,25 +206,25 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isDarkMode = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
+                                checkedThumbColor = Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Color de Acento HUD",
+                            text = "Color de Acento",
                             color = MaterialTheme.colorScheme.onBackground,
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
 
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val colorsList = listOf("CYAN", "AMBER", "RED", "VIOLET")
@@ -234,8 +239,9 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 val active = colorMap[colorStr] ?: ColorCyan
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .background(active, CircleShape)
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(active)
                                         .border(
                                             width = if (selectedAccentColor == colorStr) 3.dp else 0.dp,
                                             color = MaterialTheme.colorScheme.onBackground,
@@ -252,69 +258,64 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                 }
             }
 
-            // PREMIUM IOS ADDED FUNCTIONS CARD
+            // iOS PRO Performance & Network Settings Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "FUNCIONES PRO Y PERFILES iOS",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Speed, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Rendimiento y Red Pro",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                    // 1. Performance Profile
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Performance Profile
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Perfil de Rendimiento",
                             color = MaterialTheme.colorScheme.onBackground,
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val profiles = listOf("BATTERY", "BALANCED", "ULTRA_GAMING")
-                            val profileLabels = mapOf("BATTERY" to "🔋 Ahorro", "BALANCED" to "⚖️ Balance", "ULTRA_GAMING" to "⚡ Ultra")
 
-                            profiles.forEach { profile ->
-                                Button(
-                                    onClick = {
-                                        selectedProfile = profile
-                                        preferences.activePerformanceProfile = profile
-                                        Toast.makeText(context, "Perfil de Rendimiento: ${profileLabels[profile]}", Toast.LENGTH_SHORT).show()
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (selectedProfile == profile) accentColor else Color.White.copy(alpha = 0.05f),
-                                        contentColor = if (selectedProfile == profile) {
-                                            if (isDarkMode) Color.Black else Color.White
-                                        } else {
-                                            MaterialTheme.colorScheme.onBackground
-                                        }
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Text(profileLabels[profile] ?: "", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        IosSegmentedControl(
+                            items = listOf("🔋 Ahorro", "⚖️ Balance", "⚡ Ultra"),
+                            selectedIndex = when (selectedProfile) {
+                                "BATTERY" -> 0
+                                "BALANCED" -> 1
+                                else -> 2
+                            },
+                            onItemSelected = { index ->
+                                val prof = when (index) {
+                                    0 -> "BATTERY"
+                                    1 -> "BALANCED"
+                                    else -> "ULTRA_GAMING"
                                 }
-                            }
-                        }
+                                selectedProfile = prof
+                                preferences.activePerformanceProfile = prof
+                                Toast.makeText(context, "Perfil de Rendimiento cambiado", Toast.LENGTH_SHORT).show()
+                            },
+                            isDarkMode = isDarkMode
+                        )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
-                    // 2. Exclusive connection
+                    // Exclusive Connection
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -326,10 +327,10 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Bloquea internet para otras apps excepto el juego seleccionado",
+                                text = "Prioriza todo el ancho de banda para tu juego",
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 12.sp
@@ -352,15 +353,15 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 }
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
+                                checkedThumbColor = Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
-                    // 3. DNS Optimization
+                    // DNS Optimization
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -368,14 +369,14 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Optimización de DNS",
+                                text = "Optimización DNS",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Usa DNS de alta velocidad para reducir latencia",
+                                text = "Utiliza DNS de baja latencia",
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 12.sp
@@ -388,73 +389,68 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isDnsOptimizationEnabled = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
+                                checkedThumbColor = Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
                     }
 
                     if (isDnsOptEnabled) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = "Servidor DNS Preferido",
+                                text = "Servidor DNS",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                val providers = listOf("CLOUDFLARE", "GOOGLE", "ADGUARD")
-                                val providerLabels = mapOf("CLOUDFLARE" to "⚡ Cloudflare", "GOOGLE" to "🔍 Google", "ADGUARD" to "🛡️ AdGuard")
 
-                                providers.forEach { provider ->
-                                    Button(
-                                        onClick = {
-                                            selectedDnsProvider = provider
-                                            preferences.dnsProvider = provider
-                                        },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (selectedDnsProvider == provider) accentColor else Color.White.copy(alpha = 0.05f),
-                                            contentColor = if (selectedDnsProvider == provider) {
-                                                if (isDarkMode) Color.Black else Color.White
-                                            } else {
-                                                MaterialTheme.colorScheme.onBackground
-                                            }
-                                        ),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.weight(1f),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text(providerLabels[provider] ?: "", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            IosSegmentedControl(
+                                items = listOf("Cloudflare", "Google", "AdGuard"),
+                                selectedIndex = when (selectedDnsProvider) {
+                                    "CLOUDFLARE" -> 0
+                                    "GOOGLE" -> 1
+                                    else -> 2
+                                },
+                                onItemSelected = { index ->
+                                    val prov = when (index) {
+                                        0 -> "CLOUDFLARE"
+                                        1 -> "GOOGLE"
+                                        else -> "ADGUARD"
                                     }
-                                }
-                            }
+                                    selectedDnsProvider = prov
+                                    preferences.dnsProvider = prov
+                                },
+                                isDarkMode = isDarkMode
+                            )
                         }
                     }
                 }
             }
 
-            // Call Blocking & Allowed Contacts Card
+            // Call Blocking & Exclusions Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "BLOQUEO DE LLAMADAS (DND)",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.PhoneCallback, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Bloqueo de Llamadas (DND)",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -463,11 +459,11 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Rechazar llamadas entrantes",
+                                text = "Rechazar Llamadas Entrantes",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontFamily = RajdhaniFontFamily,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                         Switch(
@@ -477,19 +473,19 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 preferences.isModoJuegoActivo = isChecked
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDarkMode) Color.Black else Color.White,
+                                checkedThumbColor = Color.White,
                                 checkedTrackColor = accentColor
                             )
                         )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                     Text(
-                        text = "CONTACTOS PERMITIDOS (EXCEPCIONES)",
-                        color = accentColor,
+                        text = "Contactos Excepcionados",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -500,15 +496,15 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(contact.name, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                Text(contact.phoneNumber, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
+                                Text(contact.name, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                Text(contact.phoneNumber, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 13.sp)
                             }
                             IconButton(onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     db.allowedContactDao().delete(contact)
                                 }
                             }) {
-                                Text("✕", color = ColorRed)
+                                Text("✕", color = ColorRed, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -523,14 +519,14 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             onValueChange = { newContactName = it },
                             placeholder = { Text("Nombre") },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         OutlinedTextField(
                             value = newContactPhone,
                             onValueChange = { newContactPhone = it },
                             placeholder = { Text("Número") },
                             modifier = Modifier.weight(1.2f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         Button(
                             onClick = {
@@ -543,48 +539,43 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
+                            Text("+", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Connection Monitor Configuration Card
+            // Connection Monitor & Ping Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "MONITOR DE PING Y CALIDAD DE RED",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Public, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Servidores de Ping",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                    // Active server selection
                     Text(
-                        text = "Servidor Ping Activo: $activeServerIp",
-                        color = MaterialTheme.colorScheme.onBackground,
+                        text = "Servidor Activo: $activeServerIp",
+                        color = accentColor,
                         fontFamily = RajdhaniFontFamily,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // Custom Server List
-                    Text(
-                        text = "LISTA DE SERVIDORES DE PING",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -598,17 +589,24 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     activeServerIp = server.ipOrDomain
                                     preferences.configurableServer = server.ipOrDomain
-                                    Toast.makeText(context, "Servidor cambiado a ${server.name} (${server.ipOrDomain})", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Servidor cambiado a ${server.name}", Toast.LENGTH_SHORT).show()
                                 }
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 6.dp, horizontal = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(server.name, color = if (activeServerIp == server.ipOrDomain) accentColor else MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    server.name,
+                                    color = if (activeServerIp == server.ipOrDomain) accentColor else MaterialTheme.colorScheme.onBackground,
+                                    fontFamily = RajdhaniFontFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 Text(server.ipOrDomain, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
                             }
                             if (!presetServers.any { it.ipOrDomain == server.ipOrDomain }) {
@@ -617,7 +615,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                         db.customServerDao().delete(server)
                                     }
                                 }) {
-                                    Text("✕", color = ColorRed)
+                                    Text("✕", color = ColorRed, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -631,16 +629,16 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                         OutlinedTextField(
                             value = newServerName,
                             onValueChange = { newServerName = it },
-                            placeholder = { Text("Nombre Servidor") },
+                            placeholder = { Text("Nombre") },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         OutlinedTextField(
                             value = newServerIp,
                             onValueChange = { newServerIp = it },
-                            placeholder = { Text("IP/Dominio") },
+                            placeholder = { Text("IP / Dominio") },
                             modifier = Modifier.weight(1.2f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         Button(
                             onClick = {
@@ -653,22 +651,22 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
+                            Text("+", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
 
                     // Ping Alert Threshold
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Alerta de Ping Alto (> ${pingThreshold.toInt()} ms)",
+                            text = "Umbral de Alerta (> ${pingThreshold.toInt()} ms)",
                             color = MaterialTheme.colorScheme.onBackground,
                             fontFamily = RajdhaniFontFamily,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
 
                         Slider(
@@ -715,71 +713,70 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                 }
             }
 
-            // RAM Whitelist & Cleaner Configuration Card
+            // RAM Cleaner & Whitelist Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glassmorphism(isDarkMode = isDarkMode)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "OPTIMIZADOR DE RAM",
-                        color = accentColor,
-                        fontFamily = OrbitronFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-
-                    // Scheduled automatic clean
-                    Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
                         Text(
-                            text = "Limpieza Automática cada:",
+                            text = "Optimizador de RAM",
                             color = MaterialTheme.colorScheme.onBackground,
-                            fontFamily = RajdhaniFontFamily,
+                            fontFamily = OrbitronFontFamily,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val intervals = listOf(0, 5, 10, 15, 30)
-                            intervals.forEach { mins ->
-                                Button(
-                                    onClick = {
-                                        autoCleanInterval = mins
-                                        preferences.autoRamCleanIntervalMins = mins
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (autoCleanInterval == mins) accentColor else Color.White.copy(alpha = 0.05f),
-                                        contentColor = if (autoCleanInterval == mins) {
-                                            if (isDarkMode) Color.Black else Color.White
-                                        } else {
-                                            MaterialTheme.colorScheme.onBackground
-                                        }
-                                    ),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Text(if (mins == 0) "OFF" else "${mins}m", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Limpieza Automática Programada",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = RajdhaniFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
 
-                    // Whitelisted apps list
+                        IosSegmentedControl(
+                            items = listOf("OFF", "5 min", "10 min", "15 min", "30 min"),
+                            selectedIndex = when (autoCleanInterval) {
+                                5 -> 1
+                                10 -> 2
+                                15 -> 3
+                                30 -> 4
+                                else -> 0
+                            },
+                            onItemSelected = { index ->
+                                val interval = when (index) {
+                                    1 -> 5
+                                    2 -> 10
+                                    3 -> 15
+                                    4 -> 30
+                                    else -> 0
+                                }
+                                autoCleanInterval = interval
+                                preferences.autoRamCleanIntervalMins = interval
+                            },
+                            isDarkMode = isDarkMode
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
+
                     Text(
-                        text = "LISTA BLANCA DE APPS (NUNCA CERRAR)",
-                        color = accentColor,
+                        text = "Lista Blanca de Aplicaciones",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontFamily = OrbitronFontFamily,
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -790,7 +787,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(app.appName, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(app.appName, color = MaterialTheme.colorScheme.onBackground, fontFamily = RajdhaniFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                 Text(app.packageName, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), fontFamily = RajdhaniFontFamily, fontSize = 12.sp)
                             }
                             IconButton(onClick = {
@@ -798,7 +795,7 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                     db.whitelistedAppDao().delete(app)
                                 }
                             }) {
-                                Text("✕", color = ColorRed)
+                                Text("✕", color = ColorRed, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -813,14 +810,14 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                             onValueChange = { newAppName = it },
                             placeholder = { Text("Nombre App") },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         OutlinedTextField(
                             value = newAppPkg,
                             onValueChange = { newAppPkg = it },
-                            placeholder = { Text("com.package") },
+                            placeholder = { Text("com.paquete") },
                             modifier = Modifier.weight(1.2f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         Button(
                             onClick = {
@@ -833,9 +830,9 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("+", color = if (isDarkMode) Color.Black else Color.White, fontWeight = FontWeight.Bold)
+                            Text("+", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
