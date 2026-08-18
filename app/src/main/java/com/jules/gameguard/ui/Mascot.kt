@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jules.gameguard.ai.AiInferenceResult
+import com.jules.gameguard.ai.LagRiskLevel
 import kotlin.random.Random
 
 /**
@@ -31,6 +33,7 @@ fun GuardyMascot(
     pingStatus: String = "INACTIVO",
     isGameModeActive: Boolean = false,
     lastClosedApps: String = "",
+    aiResult: AiInferenceResult? = null,
     isDarkMode: Boolean = true
 ) {
     // Interactive state
@@ -80,9 +83,28 @@ fun GuardyMascot(
     if (currentTipIndex != -1) {
         face = "🦊💡"
         speech = guardyTips[currentTipIndex % guardyTips.size]
+    } else if (aiResult != null && isGameModeActive) {
+        when (aiResult.lagRisk) {
+            LagRiskLevel.CRITICAL -> {
+                face = "🦊🤖"
+                speech = "IA GameGuard (Score: ${aiResult.gamingPerformanceScore}): ${aiResult.recommendation.description}"
+            }
+            LagRiskLevel.HIGH -> {
+                face = "🦊⚡"
+                speech = "IA GameGuard (${aiResult.aiConfidencePercent}% confianza): Detecté riesgo moderado de lag. ${aiResult.recommendation.actionName} activado."
+            }
+            LagRiskLevel.MODERATE -> {
+                face = "🦊✨"
+                speech = "IA GameGuard: Conexión ${aiResult.estimatedPingStability}. Score de rendimiento: ${aiResult.gamingPerformanceScore}/100."
+            }
+            LagRiskLevel.LOW -> {
+                face = "🦊🚀"
+                speech = "IA GameGuard: ¡Sistema en estado óptimo (${aiResult.gamingPerformanceScore}/100)! Red estable y procesador libre."
+            }
+        }
     } else if (!isGameModeActive) {
         face = "🦊💤"
-        speech = "¡Zzz... Activa el Modo Juego para que despierte y empiece a proteger tu ping!"
+        speech = "¡Zzz... Activa el Modo Juego para que la IA despierte y optimice tu experiencia de juego!"
     } else {
         when (pingStatus.uppercase()) {
             "MALA" -> {
@@ -99,7 +121,7 @@ fun GuardyMascot(
             }
             else -> {
                 face = "🦊👍"
-                speech = "¡Hola! Estoy listo para optimizar tu red y bloquear interrupciones. ¡Haz clic en mí para un consejo!"
+                speech = "¡Hola! Estoy listo para optimizar tu red con IA y bloquear interrupciones. ¡Haz clic en mí para un consejo!"
             }
         }
     }
