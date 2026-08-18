@@ -49,6 +49,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
+import com.jules.gameguard.ai.AiInferenceResult
+import com.jules.gameguard.ai.AiOptimizationEngine
+import com.jules.gameguard.ai.LagRiskLevel
+import com.jules.gameguard.ai.SystemTelemetry
 import com.jules.gameguard.data.AppDatabase
 import com.jules.gameguard.data.GameGuardPreferences
 import com.jules.gameguard.data.RamCleanRecord
@@ -56,6 +60,7 @@ import com.jules.gameguard.service.ConnectionMonitorService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +103,37 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
 
     // Collect 60s real-time ping history
     val realtimePingHistory by ConnectionMonitorService.realtimePingHistory.collectAsState()
+
+    // Battery and CPU Temperature Telemetry
+    var batteryPercent by remember { mutableStateOf(100) }
+    var cpuTempCelsius by remember { mutableStateOf(36.0) }
+
+    LaunchedEffect(Unit) {
+        val filter = android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val batteryIntent = context.registerReceiver(null, filter)
+        val level = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1) ?: -1
+        if (level >= 0 && scale > 0) {
+            batteryPercent = (level * 100 / scale.toFloat()).toInt()
+        }
+        val rawTemp = batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+        if (rawTemp > 0) {
+            cpuTempCelsius = rawTemp / 10.0
+        }
+    }
+
+    // AI Optimization Engine Instance
+    val aiEngine = remember { AiOptimizationEngine.getInstance() }
+    val aiTelemetry = SystemTelemetry(
+        pingMs = pingMs,
+        packetLossPercent = serviceState?.packetLossPercent ?: 0,
+        ramUsagePercent = 65.0f,
+        cpuTempCelsius = cpuTempCelsius,
+        batteryPercent = batteryPercent
+    )
+    val aiResult = remember(pingMs, serviceState?.packetLossPercent, isModoJuegoActivo) {
+        aiEngine.analyzeSystemStatus(aiTelemetry)
+    }
 
     // Collect total RAM cleared stats
     val totalRamClearedDb by db.ramCleanRecordDao().getTotalRamClearedMbFlow().collectAsState(initial = 0L)
@@ -384,6 +420,14 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                     pingStatus = pingStatus,
                     isGameModeActive = isModoJuegoActivo,
                     lastClosedApps = lastClosedApps,
+                    aiResult = aiResult,
+                    isDarkMode = isDarkMode
+                )
+
+                // AI Neural Engine Card
+                AiNeuralEngineCard(
+                    aiResult = aiResult,
+                    accentColor = accentColor,
                     isDarkMode = isDarkMode
                 )
 
@@ -768,6 +812,156 @@ fun HomeScreen(navController: NavController, preferences: GameGuardPreferences) 
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AiNeuralEngineCard(
+    aiResult: AiInferenceResult,
+    accentColor: Color,
+    isDarkMode: Boolean = true
+) {
+    val riskColor = when (aiResult.lagRisk) {
+        LagRiskLevel.LOW -> if (isDarkMode) ColorGreen else ColorGreenLight
+        LagRiskLevel.MODERATE -> if (isDarkMode) ColorAmber else ColorAmberLight
+        LagRiskLevel.HIGH -> if (isDarkMode) ColorRed else ColorRedLight
+        LagRiskLevel.CRITICAL -> ColorRed
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassmorphism(isDarkMode = isDarkMode)
+            .padding(18.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "🤖",
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        text = "GameGuard AI Neural Engine",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = accentColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = aiResult.modelVersion,
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Score Rendimiento Gaming",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                        fontFamily = RajdhaniFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${aiResult.gamingPerformanceScore}",
+                            color = accentColor,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "/100 pts",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Riesgo de Lag",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                        fontFamily = RajdhaniFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = riskColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = aiResult.lagRisk.displayName,
+                            color = riskColor,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isDarkMode) Color.Black.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.04f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Recomendación de la IA (${aiResult.aiConfidencePercent}% precisión):",
+                        color = accentColor,
+                        fontFamily = OrbitronFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = aiResult.recommendation.description,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                        fontFamily = RajdhaniFontFamily,
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp
+                    )
                 }
             }
         }

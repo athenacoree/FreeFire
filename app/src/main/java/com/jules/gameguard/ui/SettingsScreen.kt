@@ -72,6 +72,10 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
     var isDnsOptEnabled by remember { mutableStateOf(preferences.isDnsOptimizationEnabled) }
     var selectedDnsProvider by remember { mutableStateOf(preferences.dnsProvider) }
 
+    // AI Engine settings state
+    var isAiAutoOptEnabled by remember { mutableStateOf(preferences.isAiAutoOptimizationEnabled) }
+    var selectedAiSensitivity by remember { mutableStateOf(preferences.aiSensitivity) }
+
     // Input text fields
     var newServerName by remember { mutableStateOf("") }
     var newServerIp by remember { mutableStateOf("") }
@@ -254,6 +258,98 @@ fun SettingsScreen(navController: NavController, preferences: GameGuardPreferenc
                                         }
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // GameGuard AI Engine Settings Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glassmorphism(isDarkMode = isDarkMode)
+                    .padding(18.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "🤖", fontSize = 18.sp)
+                        Text(
+                            text = "GameGuard AI Neural Engine",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontFamily = OrbitronFontFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Optimización IA Automática",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Evalúa latencia y RAM con la red neuronal en tiempo real",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = isAiAutoOptEnabled,
+                            onCheckedChange = { isChecked ->
+                                isAiAutoOptEnabled = isChecked
+                                preferences.isAiAutoOptimizationEnabled = isChecked
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = accentColor
+                            )
+                        )
+                    }
+
+                    if (isAiAutoOptEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Sensibilidad del Modelo IA",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontFamily = RajdhaniFontFamily,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            IosSegmentedControl(
+                                items = listOf("Conservador", "Balanceado", "Agresivo"),
+                                selectedIndex = when (selectedAiSensitivity) {
+                                    "CONSERVATIVE" -> 0
+                                    "AGGRESSIVE" -> 2
+                                    else -> 1
+                                },
+                                onItemSelected = { index ->
+                                    val sens = when (index) {
+                                        0 -> "CONSERVATIVE"
+                                        2 -> "AGGRESSIVE"
+                                        else -> "BALANCED"
+                                    }
+                                    selectedAiSensitivity = sens
+                                    preferences.aiSensitivity = sens
+                                },
+                                isDarkMode = isDarkMode
+                            )
                         }
                     }
                 }

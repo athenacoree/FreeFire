@@ -30,7 +30,19 @@ class GameGuardPreferences(context: Context) {
         private const val KEY_DNS_OPTIMIZATION_ENABLED = "dns_optimization_enabled"
         private const val KEY_DNS_PROVIDER = "dns_provider" // "CLOUDFLARE", "GOOGLE", "ADGUARD"
         private const val KEY_CALL_BLOCKING_ENABLED = "call_blocking_enabled"
+
+        // AI Engine preferences
+        private const val KEY_AI_AUTO_OPTIMIZATION_ENABLED = "ai_auto_optimization_enabled"
+        private const val KEY_AI_SENSITIVITY = "ai_sensitivity" // "CONSERVATIVE", "BALANCED", "AGGRESSIVE"
     }
+
+    var isAiAutoOptimizationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AI_AUTO_OPTIMIZATION_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_AI_AUTO_OPTIMIZATION_ENABLED, value).apply()
+
+    var aiSensitivity: String
+        get() = prefs.getString(KEY_AI_SENSITIVITY, "BALANCED") ?: "BALANCED"
+        set(value) = prefs.edit().putString(KEY_AI_SENSITIVITY, value).apply()
 
     var isCallBlockingEnabled: Boolean
         get() = prefs.getBoolean(KEY_CALL_BLOCKING_ENABLED, true)
