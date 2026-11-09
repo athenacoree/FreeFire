@@ -17,7 +17,7 @@ android {
         versionCode = 3
         versionName = "0.3.0"
 
-        // Publishable key: safe for client apps. Never put a Supabase secret/service_role key here.
+        // Publishable key only. Never put a Supabase secret/service_role key here.
         buildConfigField("String", "SUPABASE_URL", "\"https://wlbnulfixkfmvcifvpum.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_rs8AM2PluCPJD1P4fhBznw_SrZSDh4F\"")
     }
@@ -25,10 +25,13 @@ android {
     signingConfigs {
         create("release") {
             val storeFilePath = System.getenv("MUSIC_KEYSTORE_FILE")
-            if (!storeFilePath.isNullOrBlank()) storeFile = file(storeFilePath)
+            if (!storeFilePath.isNullOrBlank()) {
+                storeFile = file(storeFilePath)
+            }
             storePassword = System.getenv("MUSIC_KEYSTORE_PASSWORD")
             keyAlias = System.getenv("MUSIC_KEY_ALIAS")
             keyPassword = System.getenv("MUSIC_KEY_PASSWORD")
+            storeType = "PKCS12"
         }
     }
 
@@ -39,17 +42,7 @@ android {
         }
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("MUSIC_KEYSTORE_FILE") ?: "missing-release-keystore.p12")
-            storePassword = System.getenv("MUSIC_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("MUSIC_KEY_ALIAS")
-            keyPassword = System.getenv("MUSIC_KEY_PASSWORD")
-            storeType = "PKCS12"
-        }
-    }
-
-    buildTypes {\n        getByName("release") {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n        }\n    }\n\n    buildFeatures {
+    buildFeatures {
         compose = true
         buildConfig = true
     }
@@ -58,7 +51,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
 }
 
 kotlin {
@@ -104,7 +96,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.6.1")
     implementation("androidx.media3:media3-session:1.6.1")
 
-    // Supabase Kotlin SDK: public catalog access for the first integration stage.
+    // Supabase Kotlin SDK: public catalog access.
     implementation(platform("io.github.jan-tennert.supabase:bom:3.9.0"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:gotrue-kt")
