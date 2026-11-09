@@ -1,5 +1,6 @@
 package com.athenacoree.music
 
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -16,7 +17,7 @@ internal data class MusicNotificationDto(
 
 internal object MusicNotificationRepository {
     suspend fun loadInbox(): List<MusicNotificationDto> {
-        if (MusicSupabase.client.gotrue.currentSessionOrNull() == null) return emptyList()
+        if (MusicSupabase.client.auth.currentSessionOrNull() == null) return emptyList()
         return MusicSupabase.client.from("notifications").select()
             .decodeList<MusicNotificationDto>()
             .sortedByDescending { it.createdAt }
