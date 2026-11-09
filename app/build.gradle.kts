@@ -1,90 +1,120 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.devtools.ksp")
 }
 
 android {
-    namespace = "com.jules.gameguard"
-    compileSdk = 34
+    namespace = "com.athenacoree.music"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.jules.gameguard"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 2
-        versionName = "2.0"
+        applicationId = "com.athenacoree.music"
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 3
+        versionName = "0.3.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        // Publishable key: safe for client apps. Never put a Supabase secret/service_role key here.
+        buildConfigField("String", "SUPABASE_URL", "\"https://wlbnulfixkfmvcifvpum.supabase.co\"")
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_rs8AM2PluCPJD1P4fhBznw_SrZSDh4F\"")
     }
 
     signingConfigs {
-        create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        create("release") {
+            val storeFilePath = System.getenv("MUSIC_KEYSTORE_FILE")
+            if (!storeFilePath.isNullOrBlank()) storeFile = file(storeFilePath)
+            storePassword = System.getenv("MUSIC_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("MUSIC_KEY_ALIAS")
+            keyPassword = System.getenv("MUSIC_KEY_PASSWORD")
         }
     }
 
     buildTypes {
-        debug {
-            signingConfig = signingConfigs.getByName("debugConfig")
-        }
-        release {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("MUSIC_KEYSTORE_FILE") ?: "missing-release-keystore.p12")
+            storePassword = System.getenv("MUSIC_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("MUSIC_KEY_ALIAS")
+            keyPassword = System.getenv("MUSIC_KEY_PASSWORD")
+            storeType = "PKCS12"
+        }
     }
-    kotlinOptions {
-        jvmTarget = "21"
-    }
-    buildFeatures {
+
+    buildTypes {\n        getByName("release") {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n        }\n    }\n\n    buildFeatures {
         compose = true
+        buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8" // compatible with Kotlin 1.9.22
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
+
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
+configurations.configureEach {
+    resolutionStrategy.force(
+        "androidx.lifecycle:lifecycle-runtime-compose:2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7",
+        "androidx.browser:browser:1.8.0"
+    )
+}
+
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.browser:browser:1.8.0")
+
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.datastore.preferences)
+    implementation("androidx.navigation:navigation-compose:2.8.7")
 
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+    // Offline-first library and persistent preferences.
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
 
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    // Native playback for user-owned or otherwise authorized media only.
+    implementation("androidx.media3:media3-exoplayer:1.6.1")
+    implementation("androidx.media3:media3-session:1.6.1")
+
+    // Supabase Kotlin SDK: public catalog access for the first integration stage.
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.9.0"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:gotrue-kt")
+    implementation("io.github.jan-tennert.supabase:storage-kt")
+
+    // Image loading for catalog artwork and thumbnails.
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.ktor:ktor-client-android:3.4.3")
+
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("junit:junit:4.13.2")
 }
