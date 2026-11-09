@@ -88,7 +88,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.github.jan.supabase.gotrue.SessionStatus
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 
 private enum class MusicTab(val label: String, val icon: ImageVector) {
     Home("Inicio", Icons.Default.Home),
@@ -946,7 +947,7 @@ private fun ProfileScreen(
     var inboxLoading by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        MusicSupabase.client.gotrue.sessionStatus.collect { status ->
+        MusicSupabase.client.auth.sessionStatus.collect { status ->
             signedIn = status is SessionStatus.Authenticated
         }
     }
