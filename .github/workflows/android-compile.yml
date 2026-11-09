@@ -1,4 +1,4 @@
-name: Android build and signed release
+name: Android test build (signed debug APK)
 
 on:
   push:
@@ -13,14 +13,9 @@ permissions:
   contents: read
 
 jobs:
-  assemble:
+  assemble-test:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      MUSIC_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      MUSIC_KEYSTORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-      MUSIC_KEY_ALIAS: debugging
-      MUSIC_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,31 +35,13 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Compile debug APK
+      - name: Build test APK (debug)
         run: gradle --no-daemon :app:assembleDebug
 
-      - name: Prepare release signing key
-        if: ${{ env.MUSIC_KEYSTORE_BASE64 != '' && env.MUSIC_KEYSTORE_PASSWORD != '' && env.MUSIC_KEY_ALIAS != '' && env.MUSIC_KEY_PASSWORD != '' }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/music-signing"
-          echo "$MUSIC_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/music-signing/release.p12"
-          echo "MUSIC_KEYSTORE_FILE=$RUNNER_TEMP/music-signing/release.p12" >> "$GITHUB_ENV"
-
-      - name: Build signed release APK and AAB
-        if: ${{ env.MUSIC_KEYSTORE_FILE != '' }}
-        run: gradle --no-daemon :app:assembleRelease :app:bundleRelease
-
-      - name: Upload signed APK and AAB
-        if: ${{ env.MUSIC_KEYSTORE_FILE != '' }}
+      - name: Upload signed test APK
         uses: actions/upload-artifact@v4
         with:
-          name: Music-signed-release
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
-          retention-days: 3
+          name: Music-test-debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
           if-no-files-found: error
-
-      - name: Explain missing signing secrets
-        if: ${{ env.MUSIC_KEYSTORE_FILE == '' }}
-        run: echo "Release signing skipped. Add KEYSTORE_BASE64, STORE_PASSWORD and KEY_PASSWORD repository secrets."
