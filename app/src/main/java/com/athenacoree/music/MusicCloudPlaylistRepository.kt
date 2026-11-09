@@ -1,6 +1,8 @@
 package com.athenacoree.music
 
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -39,12 +41,12 @@ private data class InviteMemberParams(
 
 internal object MusicCloudPlaylistRepository {
     suspend fun loadMyPlaylists(): List<CloudPlaylistDto> {
-        if (MusicSupabase.client.gotrue.currentSessionOrNull() == null) return emptyList()
+        if (MusicSupabase.client.auth.currentSessionOrNull() == null) return emptyList()
         return MusicSupabase.client.from("playlists").select().decodeList<CloudPlaylistDto>()
     }
 
     suspend fun create(name: String, description: String, collaborative: Boolean) {
-        val userId = MusicSupabase.client.gotrue.currentSessionOrNull()?.user?.id
+        val userId = MusicSupabase.client.auth.currentSessionOrNull()?.user?.id
             ?: error("Inicia sesión para crear una lista compartida.")
         MusicSupabase.client.from("playlists").insert(
             CloudPlaylistInsert(userId, name.trim(), description.trim(), collaborative)
@@ -52,7 +54,7 @@ internal object MusicCloudPlaylistRepository {
     }
 
     suspend fun addTrack(playlistId: String, trackId: String) {
-        val userId = MusicSupabase.client.gotrue.currentSessionOrNull()?.user?.id
+        val userId = MusicSupabase.client.auth.currentSessionOrNull()?.user?.id
             ?: error("Inicia sesión para modificar una lista compartida.")
         MusicSupabase.client.from("playlist_items").insert(
             CloudPlaylistItemInsert(playlistId, trackId, userId)
