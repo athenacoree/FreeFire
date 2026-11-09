@@ -1,6 +1,6 @@
 package com.athenacoree.music
 
-import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -10,7 +10,7 @@ import kotlinx.serialization.json.put
  */
 internal object MusicAuthRepository {
     suspend fun signUp(email: String, password: String) {
-        MusicSupabase.client.gotrue.signUpWith(Email) {
+        MusicSupabase.client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             data = buildJsonObject { put("app", "music") }
@@ -18,13 +18,13 @@ internal object MusicAuthRepository {
     }
 
     suspend fun signIn(email: String, password: String) {
-        MusicSupabase.client.gotrue.loginWith(Email) {
+        MusicSupabase.client.auth.loginWith(Email) {
             this.email = email
             this.password = password
         }
     }
 
     suspend fun signOut() {
-        MusicSupabase.client.gotrue.signOut()
+        MusicSupabase.client.auth.signOut()
     }
 }
