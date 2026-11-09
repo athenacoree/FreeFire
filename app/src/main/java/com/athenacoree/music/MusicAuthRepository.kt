@@ -19,7 +19,7 @@ internal object MusicAuthRepository {
     }
 
     suspend fun signIn(email: String, password: String) {
-        MusicSupabase.client.auth.loginWith(Email) {
+        MusicSupabase.client.auth.signInWith(Email) {
             this.email = email
             this.password = password
         }
