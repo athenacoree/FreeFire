@@ -67,4 +67,4 @@ jobs:
 
       - name: Explain missing signing secrets
         if: ${{ env.MUSIC_KEYSTORE_FILE == '' }}
-        run: echo "Release signing skipped. Add the four MUSIC_* repository secrets."
+        run: echo "Release signing skipped. Add KEYSTORE_BASE64, STORE_PASSWORD and KEY_PASSWORD repository secrets."
