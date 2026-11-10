@@ -2,7 +2,7 @@
 
 ## Target platform
 - Minimum Android: API 26 (Android 8.0).
-- Compile SDK: 37.
+- Compile SDK: 37 (Android 37 preview channel; used only for compilation, while targetSdk remains 35 and minSdk remains 26).
 - Target SDK: 35 (kept unchanged until runtime-permission and foreground-service behavior is tested on physical devices).
 - Java toolchain: 17.
 - Gradle: 9.3.1.
