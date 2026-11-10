@@ -1,6 +1,7 @@
 package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.range
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -59,30 +60,46 @@ internal data class CatalogSyncResult(
 )
 
 internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
+    private companion object {
+        const val PAGE_SIZE = 500L
+    }
+
+    private suspend inline fun <reified T> fetchAll(table: String): List<T> {
+        val result = mutableListOf<T>()
+        var from = 0L
+        while (true) {
+            val page = MusicSupabase.client.from(table)
+                .select { range(from..(from + PAGE_SIZE - 1)) }
+                .decodeList<T>()
+            result.addAll(page)
+            if (page.size < PAGE_SIZE) return result
+            from += PAGE_SIZE
+        }
+    }
+
     suspend fun syncAll(): CatalogSyncResult {
-        val client = MusicSupabase.client
-        val artists = client.from("artists").select().decodeList<ArtistDto>()
+        val artists = fetchAll<ArtistDto>("artists")
         val artistNames = artists.associate { it.id to it.name }
         artists.forEach { item ->
             dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "artist", item.name, item.biography.orEmpty(),
                 item.imagePath, version = item.version, updatedAt = item.updatedAt))
         }
 
-        val albums = client.from("albums").select().decodeList<AlbumDto>()
+        val albums = fetchAll<AlbumDto>("albums")
         albums.forEach { item ->
             dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "album", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
                 version = item.version, updatedAt = item.updatedAt))
         }
 
-        val tracks = client.from("tracks").select().decodeList<TrackDto>()
+        val tracks = fetchAll<TrackDto>("tracks")
         tracks.forEach { item ->
             dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "track", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
                 item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt))
         }
 
-        val videos = client.from("videos").select().decodeList<VideoDto>()
+        val videos = fetchAll<VideoDto>("videos")
         videos.forEach { item ->
             dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "video", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.thumbnailPath,
