@@ -3,18 +3,11 @@ package com.athenacoree.music
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.count
-import kotlinx.serialization.Serializable
-
 internal data class CatalogSummary(
     val artists: Int,
     val albums: Int,
     val tracks: Int,
     val videos: Int
-)
-
-@Serializable
-private data class CatalogId(
-    val id: String
 )
 
 /**
