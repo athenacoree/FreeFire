@@ -1,35 +1,38 @@
 # Supabase integration
 
-Music connects to the existing Supabase project used by Interaccion. It does not create a second project or modify Interaccion's existing tables.
+Music uses the existing shared Supabase project used by Interaccion. It does not create a second project and does not modify Interaccion's existing tables.
 
 ## Android client
 
-- Project URL and the **publishable** key are configured in `app/build.gradle.kts` as BuildConfig values.
+- Project URL and the **publishable** key are configured as Android BuildConfig values.
 - The publishable key is designed for public clients. It is not an admin credential.
 - Never add a Supabase secret key or `service_role` key to the Android app, Gradle files, GitHub, or an APK.
-- The app uses the Supabase Kotlin SDK and PostgREST to read the public music catalog.
+- The Android client uses Supabase Kotlin SDK 3.9.0, PostgREST, Auth, Storage, and Ktor Android engine 3.4.3.
+- Supabase Kotlin requires Android API 26, so the app's `minSdk` is 26 (Android 8.0).
 - Android internet permission is declared in the manifest.
 
-## First integration milestone
+## Database schema and isolation
 
-The Profile and settings screen has a connection check. It requests only row IDs from:
-- `artists`
-- `albums`
-- `tracks`
-- `videos`
+Music tables are isolated by name in the shared project:
+- Public catalog: `artists`, `albums`, `tracks`, `videos`.
+- User data: `music_profiles`, `playlists`, `playlist_members`, `playlist_items`.
+- Notifications: `push_devices`, `notifications`.
 
-The catalog tables have RLS policies for public read access. User-specific tables such as `music_profiles`, `playlists`, `playlist_members`, `playlist_items`, `push_devices`, and `notifications` remain protected by authenticated-user policies.
+All Music tables have Row Level Security enabled. Public catalog tables permit read-only access to `anon` and `authenticated`; user data is restricted to authenticated users by ownership or playlist membership. Playlist authorization helpers live in the non-exposed `private` schema.
 
-Guest mode remains local-only. This first milestone does not create accounts, upload media, or sync personal playlists yet.
+## Current catalog status
 
-## Playlist helper security
+The schema and public-read policies are present, but the current production catalog tables contain **zero rows**. This is why a successful connection can still show an empty catalog. Add approved artist, album, track, and video metadata through the trusted catalog-management process before expecting content to appear.
 
-Playlist authorization helper functions live in the non-public `private` schema. RLS policies call these helpers, but they are not exposed as public PostgREST RPC endpoints.
+The app's connection check reads row IDs from the four public catalog tables. Catalog sync stores fetched metadata in Room for offline browsing. The current catalog sync is manual from the Explore tab.
 
-## Next implementation steps
+## Migrations
 
-1. Add Auth sign-up/sign-in and persistent session handling.
-2. Add Room as the local source of truth and sync catalog changes incrementally.
-3. Add shared playlist operations behind authenticated RLS.
-4. Add Storage only for authorized artwork/audio assets.
-5. Add FCM push notifications after account and device-token flows are ready.
+The seven Music migration files are stored in `supabase/migrations`. The remote database had the first six Music migrations recorded; the missing `music_playlist_notifications` migration has now been applied to the shared project and should be verified in the migration history.
+
+## Security notes
+
+- Do not expose secret/service-role keys in the Android client.
+- RLS is enabled for every Music table in the exposed `public` schema.
+- The database security advisor currently warns that leaked-password protection is disabled. Enable it in Supabase Auth password security settings.
+- The Supabase project is shared with Interaccion; do not drop, rename, or overwrite unrelated tables or policies.
