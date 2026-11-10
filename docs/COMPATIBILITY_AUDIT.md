@@ -2,16 +2,16 @@
 
 ## Target platform
 - Minimum Android: API 26 (Android 8.0).
-- Compile SDK: 36.
+- Compile SDK: 37.
 - Target SDK: 35 (kept unchanged until runtime-permission and foreground-service behavior is tested on physical devices).
 - Java toolchain: 17.
-- Gradle: 8.13.
-- Android Gradle Plugin: 8.13.2.
+- Gradle: 9.3.1.
+- Android Gradle Plugin: 9.1.1.
 - Kotlin: 2.4.21.
 - KSP: 2.3.13.
 
 ## Updated application dependencies
-- Compose BOM: 2026.06.00 (chosen to remain compatible with compileSdk 36; Compose 1.12 stable line requires a newer compile SDK/AGP).
+- Compose BOM: 2026.06.00 (includes current Compose libraries that require compileSdk 37 and AGP 9.1.1).
 - AndroidX Core KTX: 1.19.1.
 - Activity Compose: 1.13.0.
 - Lifecycle: 2.11.0.
