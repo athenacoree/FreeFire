@@ -46,7 +46,7 @@ internal object MusicDeviceScanner {
         val queryArgs = Bundle().apply {
             putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                 "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN ($placeholders)")
-            putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, mediaTypes.map(Int::toString).toTypedArray())
+            putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, mediaTypes.map { it.toString() }.toTypedArray())
             putStringArray(ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.MediaColumns.DATE_ADDED))
             putInt(ContentResolver.QUERY_ARG_SORT_DIRECTION, ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
             putInt(ContentResolver.QUERY_ARG_LIMIT, BATCH_SIZE)
