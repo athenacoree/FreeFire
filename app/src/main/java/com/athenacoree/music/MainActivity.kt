@@ -47,7 +47,7 @@ import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -285,7 +285,7 @@ private fun FeaturedCard(colors: MusicColors, onExplore: () -> Unit) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
             Text("TU BIBLIOTECA EMPIEZA AQUÍ", color = Color.White.copy(alpha = .8f), fontSize = 10.sp, letterSpacing = 1.5.sp)
-            Text("Dale espacio\\na lo que te mueve.", color = Color.White, fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
+            Text("Dale espacio\na lo que te mueve.", color = Color.White, fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
             Row(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -375,14 +375,24 @@ private fun LibraryScreen(
     var scanStatus by rememberSaveable { mutableStateOf("Primero se importan 5 archivos; luego puedes continuar por tandas.") }
     val scanPermissions = if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO) else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     val scanLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-        if (grants.values.all { it }) scope.launch {
-            runCatching { MusicDeviceScanner.scanNextMediaBatch(context, repository) }
-                .onSuccess { result ->
-                    scanStatus = if (result.imported == 0) "No quedan más archivos multimedia." else
+        if (grants.values.any { it }) {
+            val audioAllowed = Build.VERSION.SDK_INT < 33 || grants[Manifest.permission.READ_MEDIA_AUDIO] == true
+            val videoAllowed = Build.VERSION.SDK_INT < 33 || grants[Manifest.permission.READ_MEDIA_VIDEO] == true
+            scope.launch {
+                runCatching {
+                    MusicDeviceScanner.scanNextMediaBatch(
+                        context, repository,
+                        includeAudio = audioAllowed,
+                        includeVideo = videoAllowed
+                    )
+                }.onSuccess { result ->
+                    scanStatus = if (result.imported == 0) "No quedan más archivos multimedia con los permisos concedidos." else
                         "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes importar los siguientes cinco." else "Exploración completada."
-                }
-                .onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}" }
-        } else scanStatus = "Permiso para leer audio y vídeo no concedido."
+                }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}" }
+            }
+        } else {
+            scanStatus = "Concede permiso para leer audio o vídeo para continuar."
+        }
     }
 
     val filePicker = rememberLauncherForActivityResult(
@@ -659,7 +669,7 @@ private fun CatalogBrowserScreen(
                         }
                         syncStatus = result.fold(
                             { "Actualizado: ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
-                            { "Sin conexión. Se conserva el catálogo descargado anteriormente." }
+                            { "Error al sincronizar: ${it.message?.take(180) ?: "error desconocido"}. Se conserva el catálogo descargado anteriormente." }
                         )
                         syncing = false
                     }
@@ -1043,8 +1053,9 @@ private fun ProfileScreen(
                                         else "Registro enviado. Si se solicita, confirma tu correo antes de iniciar sesión."
                                     },
                                     onFailure = {
-                                        if (authMode == "login") "No se pudo iniciar sesión. Revisa tus datos e inténtalo de nuevo."
-                                        else "No se pudo crear la cuenta. Comprueba el correo e inténtalo de nuevo."
+                                        val detail = it.message?.take(180) ?: "Error desconocido"
+                                        if (authMode == "login") "No se pudo iniciar sesión: $detail"
+                                        else "No se pudo crear la cuenta: $detail"
                                     }
                                 )
                                 authLoading = false
@@ -1099,7 +1110,7 @@ private fun ProfileScreen(
                             }
                             cloudStatus = result.fold(
                                 onSuccess = { "Conectado · ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
-                                onFailure = { "No se pudo conectar. Comprueba tu conexión e inténtalo de nuevo." }
+                                onFailure = { "No se pudo conectar: ${it.message?.take(180) ?: "error desconocido"}" }
                             )
                             checkingCloud = false
                         }
@@ -1125,7 +1136,7 @@ private fun ProfileScreen(
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) { MusicNotificationRepository.loadInbox() } }
                                 .onSuccess { inbox = it; inboxStatus = if (it.isEmpty()) "No hay notificaciones o debes iniciar sesión." else "${it.size} notificación(es)" }
-                                .onFailure { inboxStatus = "No se pudo cargar la bandeja." }
+                                .onFailure { inboxStatus = "No se pudo cargar la bandeja: ${it.message?.take(160) ?: "error desconocido"}" }
                             inboxLoading = false
                         }
                     }
