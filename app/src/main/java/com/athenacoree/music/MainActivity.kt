@@ -191,8 +191,8 @@ private fun MusicApp() {
                     MusicTab.Home -> HomeScreen(colors, padding) { selectedTab = MusicTab.Videos.name }
                     MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository)
-                    MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository)
-                    MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, onThemeChange = changeTheme)
+                    MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
+                    MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, onThemeChange = changeTheme, showFeedback = showFeedback)
                 }
             }
             MusicFeedbackBanner(feedback)
@@ -894,7 +894,8 @@ private fun normalizeMusicTitle(value: String): String =
 private fun PlaylistManagerScreen(
     colors: MusicColors,
     padding: PaddingValues,
-    repository: MusicLibraryRepository
+    repository: MusicLibraryRepository,
+    showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
     val localLists by repository.playlists.collectAsState(initial = emptyList())
     val localTracks by repository.tracks.collectAsState(initial = emptyList())
@@ -924,17 +925,18 @@ private fun PlaylistManagerScreen(
                 Button(onClick = {
                     scope.launch {
                         runCatching { repository.createPlaylist(name, description) }
-                            .onSuccess { name = ""; description = ""; message = "Lista guardada en este dispositivo." }
-                            .onFailure { message = "No se pudo crear la lista." }
+                             .onSuccess { name = ""; description = ""; message = "Lista guardada en este dispositivo."; showFeedback("¡Tu lista se creó correctamente!", MusicFeedbackType.SUCCESS) }
+                            .onFailure { message = "No se pudo crear la lista."; showFeedback("No se pudo crear la lista. Inténtalo de nuevo.", MusicFeedbackType.ERROR) }
                     }
                 }, enabled = name.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Crear lista local") }
                 Button(onClick = {
                     if (!busy) {
                         busy = true
+                        showFeedback("Creando tu lista colaborativa…", MusicFeedbackType.LOADING)
                         scope.launch {
                             runCatching { MusicCloudPlaylistRepository.create(name, description, true) }
-                                .onSuccess { name = ""; description = ""; message = "Lista colaborativa creada en la nube." }
-                                .onFailure { message = it.message ?: "Inicia sesión para crear listas compartidas." }
+                                .onSuccess { name = ""; description = ""; message = "Lista colaborativa creada en la nube."; showFeedback("¡Lista colaborativa creada!", MusicFeedbackType.SUCCESS) }
+                                .onFailure { message = it.message ?: "Inicia sesión para crear listas compartidas."; showFeedback("No se pudo crear la lista compartida. Comprueba tu sesión.", MusicFeedbackType.ERROR) }
                             busy = false
                         }
                     }
@@ -956,8 +958,9 @@ private fun PlaylistManagerScreen(
                     }
                     TextButton(onClick = {
                         scope.launch {
-                            repository.addToPlaylist(localLists.first().id, track.id)
-                            message = "Canción añadida a tu lista local."
+                            runCatching { repository.addToPlaylist(localLists.first().id, track.id) }
+                                .onSuccess { message = "Canción añadida a tu lista local."; showFeedback("Canción añadida a la lista.", MusicFeedbackType.SUCCESS) }
+                                .onFailure { showFeedback("No se pudo añadir la canción a la lista.", MusicFeedbackType.ERROR) }
                         }
                     }) { Text("Añadir", color = colors.accent) }
                 }
@@ -980,9 +983,10 @@ private fun PlaylistManagerScreen(
                 Text("Listas compartidas", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
                 TextButton(onClick = {
                     scope.launch {
+                        showFeedback("Cargando tus listas compartidas…", MusicFeedbackType.LOADING)
                         runCatching { MusicCloudPlaylistRepository.loadMyPlaylists() }
-                            .onSuccess { cloudLists = it; message = "Listas de la nube actualizadas." }
-                            .onFailure { message = "Inicia sesión para consultar las listas compartidas." }
+                            .onSuccess { cloudLists = it; message = "Listas de la nube actualizadas."; showFeedback("Listas sincronizadas correctamente.", MusicFeedbackType.SUCCESS) }
+                            .onFailure { message = "Inicia sesión para consultar las listas compartidas."; showFeedback("No se pudieron cargar las listas. Comprueba tu conexión.", MusicFeedbackType.ERROR) }
                     }
                 }) { Text("Actualizar", color = colors.accent) }
             }
@@ -1006,9 +1010,10 @@ private fun PlaylistManagerScreen(
                 OutlinedTextField(value = cloudTrackId, onValueChange = { cloudTrackId = it }, label = { Text("ID de canción del catálogo") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Button(onClick = {
                     scope.launch {
+                        showFeedback("Añadiendo canción a la lista…", MusicFeedbackType.LOADING)
                         runCatching { MusicCloudPlaylistRepository.addTrack(targetPlaylistId.trim(), cloudTrackId.trim()) }
-                            .onSuccess { message = "Canción añadida a la lista compartida." }
-                            .onFailure { message = it.message ?: "No se pudo añadir. Debes ser propietario o editor." }
+                            .onSuccess { message = "Canción añadida a la lista compartida."; showFeedback("Canción añadida a la lista compartida.", MusicFeedbackType.SUCCESS) }
+                            .onFailure { message = it.message ?: "No se pudo añadir. Debes ser propietario o editor."; showFeedback("No se pudo añadir la canción. Revisa los permisos.", MusicFeedbackType.ERROR) }
                     }
                 }, enabled = targetPlaylistId.isNotBlank() && cloudTrackId.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                     Text("Añadir canción")
@@ -1024,9 +1029,10 @@ private fun PlaylistManagerScreen(
                 OutlinedTextField(value = inviteUserId, onValueChange = { inviteUserId = it }, label = { Text("ID de usuario") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Button(onClick = {
                     scope.launch {
+                        showFeedback("Enviando invitación…", MusicFeedbackType.LOADING)
                         runCatching { MusicCloudPlaylistRepository.invite(invitePlaylistId.trim(), inviteUserId.trim(), "editor") }
-                            .onSuccess { message = "Colaborador añadido como editor." }
-                            .onFailure { message = it.message ?: "No se pudo invitar. Comprueba que seas propietario." }
+                            .onSuccess { message = "Colaborador añadido como editor."; showFeedback("Invitación enviada correctamente.", MusicFeedbackType.SUCCESS) }
+                            .onFailure { message = it.message ?: "No se pudo invitar. Comprueba que seas propietario."; showFeedback("No se pudo enviar la invitación.", MusicFeedbackType.ERROR) }
                     }
                 }, enabled = invitePlaylistId.isNotBlank() && inviteUserId.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                     Text("Invitar como editor")
@@ -1041,7 +1047,8 @@ private fun ProfileScreen(
     colors: MusicColors,
     padding: PaddingValues,
     darkMode: Boolean,
-    onThemeChange: () -> Unit
+    onThemeChange: () -> Unit,
+    showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
     var cloudStatus by rememberSaveable { mutableStateOf("Aún no comprobada") }
     var checkingCloud by rememberSaveable { mutableStateOf(false) }
@@ -1105,6 +1112,8 @@ private fun ProfileScreen(
                                     withContext(Dispatchers.IO) { MusicAuthRepository.signOut() }
                                 }
                                 authMessage = if (result.isSuccess) "Sesión cerrada." else "No se pudo cerrar la sesión. Inténtalo de nuevo."
+                                if (result.isSuccess) showFeedback("Has cerrado sesión correctamente.", MusicFeedbackType.SUCCESS)
+                                else showFeedback("No se pudo cerrar la sesión. Inténtalo de nuevo.", MusicFeedbackType.ERROR)
                                 authLoading = false
                             }
                         }
@@ -1139,6 +1148,7 @@ private fun ProfileScreen(
                         } else if (!authLoading) {
                             authLoading = true
                             authMessage = ""
+                            showFeedback(if (authMode == "login") "Iniciando sesión…" else "Creando tu cuenta…", MusicFeedbackType.LOADING)
                             scope.launch {
                                 val result = runCatching {
                                     withContext(Dispatchers.IO) {
@@ -1160,6 +1170,10 @@ private fun ProfileScreen(
                                         else "No se pudo crear la cuenta: $detail"
                                     }
                                 )
+                                if (result.isSuccess) showFeedback(
+                                    if (authMode == "login") "¡Sesión iniciada correctamente!" else "Registro enviado correctamente.",
+                                    MusicFeedbackType.SUCCESS
+                                ) else showFeedback("No se pudo completar la operación. Revisa tus datos e inténtalo de nuevo.", MusicFeedbackType.ERROR)
                                 authLoading = false
                             }
                         }
@@ -1206,6 +1220,7 @@ private fun ProfileScreen(
                 onClick = {
                     if (!checkingCloud) {
                         checkingCloud = true
+                        showFeedback("Conectando con tu catálogo…", MusicFeedbackType.LOADING)
                         scope.launch {
                             val result = runCatching {
                                 withContext(Dispatchers.IO) { MusicCatalogRepository.loadSummary() }
@@ -1214,6 +1229,8 @@ private fun ProfileScreen(
                                 onSuccess = { "Conectado · ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
                                 onFailure = { "No se pudo conectar: ${it.message?.take(180) ?: "error desconocido"}" }
                             )
+                            if (result.isSuccess) showFeedback("Conexión con el catálogo establecida.", MusicFeedbackType.SUCCESS)
+                            else showFeedback("No pudimos conectar con el catálogo. Inténtalo más tarde.", MusicFeedbackType.ERROR)
                             checkingCloud = false
                         }
                     }
@@ -1235,10 +1252,13 @@ private fun ProfileScreen(
                 TextButton(onClick = {
                     if (!inboxLoading) {
                         inboxLoading = true
+                        showFeedback("Cargando tus notificaciones…", MusicFeedbackType.LOADING)
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) { MusicNotificationRepository.loadInbox() } }
                                 .onSuccess { inbox = it; inboxStatus = if (it.isEmpty()) "No hay notificaciones o debes iniciar sesión." else "${it.size} notificación(es)" }
                                 .onFailure { inboxStatus = "No se pudo cargar la bandeja: ${it.message?.take(160) ?: "error desconocido"}" }
+                            if (inboxStatus.startsWith("No se pudo")) showFeedback("No se pudieron cargar las notificaciones.", MusicFeedbackType.ERROR)
+                            else showFeedback("Bandeja actualizada.", MusicFeedbackType.SUCCESS)
                             inboxLoading = false
                         }
                     }
