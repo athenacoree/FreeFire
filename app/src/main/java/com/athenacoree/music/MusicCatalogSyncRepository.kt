@@ -2,8 +2,6 @@ package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
-import io.github.jan.supabase.postgrest.query.order
-import io.github.jan.supabase.postgrest.query.range
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
