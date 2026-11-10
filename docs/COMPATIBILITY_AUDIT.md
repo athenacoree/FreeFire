@@ -48,7 +48,7 @@
 - Invitation and track-added notification triggers exist on the intended tables.
 - Catalog data tables currently contain zero rows: artists, albums, tracks and videos. A successful connection therefore still yields an empty catalog until approved metadata is loaded.
 - Supabase security advisor warning remains: leaked-password protection is disabled. Enable it in Supabase Auth password security settings.
-- Performance advisor reports unused indexes, which are not being removed because the Music tables are newly introduced and have not yet had real workload.
+- Performance advisor reports 16 unused indexes across the shared project (including Interaccion and newly created Music tables). They are not being removed: usage is not yet representative, and dropping shared-project indexes could harm Interaccion.
 
 ## Verification still pending
 - Latest GitHub Actions run is building the updated Kotlin/Android dependency set. Record the final result after it completes.
