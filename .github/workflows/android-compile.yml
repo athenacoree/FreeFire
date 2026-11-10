@@ -1,8 +1,7 @@
 name: Android test build (signed debug APK)
 
 on:
-  push:
-    branches: [main]
+  # Deliberately manual while the app is under active development.
   workflow_dispatch:
 
 concurrency:
