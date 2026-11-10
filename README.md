@@ -6,7 +6,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Android 8.0 o superior (API 26+).
 - Kotlin 2.4.21, Jetpack Compose y Material 3.
 - Android Gradle Plugin 8.13.2, Gradle 8.13 y JDK 17.
-- Android SDK de compilación 36; target SDK 35.
+- Android SDK de compilación 37; target SDK 35.
 - Room para la biblioteca local y DataStore para preferencias.
 - Media3 para reproducción nativa de archivos locales/autorizados.
 - Supabase Kotlin 3.9.0 para Auth y catálogo compartido.
@@ -21,7 +21,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Render no es necesario para iniciar la aplicación ni para sus funciones esenciales.
 
 ## Configuración
-Abre el repositorio en Android Studio compatible con AGP 8.13.2, con JDK 17 y Android SDK 36, y sincroniza Gradle.
+Abre el repositorio en Android Studio compatible con AGP 9.1.1, con JDK 17 y Android SDK 36, y sincroniza Gradle.
 
 La URL de Supabase y la clave **publishable** están definidas como valores públicos de configuración Android. Una clave publishable está diseñada para clientes móviles y no es una credencial administrativa. Nunca agregues una clave Supabase secret o `service_role` al APK, al repositorio o a GitHub.
 
