@@ -1,6 +1,10 @@
 package com.athenacoree.music
 
 import android.os.Bundle
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import android.Manifest
 import android.os.Build
 import android.content.Intent
@@ -37,6 +41,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.LightMode
@@ -86,10 +93,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
+
+private enum class MusicFeedbackType { SUCCESS, ERROR, INFO, LOADING }
+private data class MusicFeedback(val message: String, val type: MusicFeedbackType)
 
 private enum class MusicTab(val label: String, val icon: ImageVector) {
     Home("Inicio", Icons.Default.Home),
@@ -113,6 +124,16 @@ private fun MusicApp() {
     val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = false)
     val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
+    var feedback by remember { mutableStateOf<MusicFeedback?>(null) }
+    val showFeedback: (String, MusicFeedbackType) -> Unit = { message, type ->
+        feedback = MusicFeedback(message, type)
+    }
+    LaunchedEffect(feedback) {
+        if (feedback != null && feedback?.type != MusicFeedbackType.LOADING) {
+            delay(2800)
+            feedback = null
+        }
+    }
     var selectedTab by rememberSaveable { mutableStateOf(MusicTab.Home.name) }
     val tab = MusicTab.valueOf(selectedTab)
 
@@ -168,10 +189,56 @@ private fun MusicApp() {
             ) { padding ->
                 when (tab) {
                     MusicTab.Home -> HomeScreen(colors, padding) { selectedTab = MusicTab.Videos.name }
-                    MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository)
+                    MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository)
                     MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository)
                     MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, onThemeChange = changeTheme)
+                }
+            }
+            MusicFeedbackBanner(feedback)
+        }
+    }
+}
+
+@Composable
+private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        AnimatedVisibility(
+            visible = feedback != null,
+            enter = fadeIn() + scaleIn(initialScale = 0.94f),
+            exit = fadeOut(),
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 88.dp)
+        ) {
+            val current = feedback
+            if (current != null) {
+                val tint = when (current.type) {
+                    MusicFeedbackType.SUCCESS -> Color(0xFF27965A)
+                    MusicFeedbackType.ERROR -> Color(0xFFD94B4B)
+                    MusicFeedbackType.INFO -> Color(0xFF397BC8)
+                    MusicFeedbackType.LOADING -> Color(0xFF7A69C7)
+                }
+                Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(18.dp), shadowElevation = 12.dp,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.padding(horizontal = 17.dp, vertical = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (current.type == MusicFeedbackType.LOADING) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(23.dp), color = Color.White, strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = when (current.type) {
+                                    MusicFeedbackType.SUCCESS -> Icons.Default.CheckCircle
+                                    MusicFeedbackType.ERROR -> Icons.Default.ErrorOutline
+                                    else -> Icons.Default.Info
+                                },
+                                contentDescription = null, tint = tint, modifier = Modifier.size(25.dp)
+                            )
+                        }
+                        Text(current.message, color = Color.White, fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium, lineHeight = 18.sp)
+                    }
                 }
             }
         }
@@ -363,10 +430,12 @@ private fun LibraryShortcut(title: String, subtitle: String, icon: ImageVector, 
 private fun LibraryScreen(
     colors: MusicColors,
     padding: PaddingValues,
-    repository: MusicLibraryRepository
+    repository: MusicLibraryRepository,
+    showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
     var filter by rememberSaveable { mutableStateOf("Todo") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    var trackPendingRemoval by remember { mutableStateOf<LocalTrackEntity?>(null) }
     val filters = listOf("Todo", "Favoritos")
     val tracks by repository.tracks.collectAsState(initial = emptyList())
     val favorites by repository.favorites.collectAsState(initial = emptyList())
@@ -379,6 +448,7 @@ private fun LibraryScreen(
             val audioAllowed = Build.VERSION.SDK_INT < 33 || grants[Manifest.permission.READ_MEDIA_AUDIO] == true
             val videoAllowed = Build.VERSION.SDK_INT < 33 || grants[Manifest.permission.READ_MEDIA_VIDEO] == true
             scope.launch {
+                showFeedback("Preparando tu biblioteca musical…", MusicFeedbackType.LOADING)
                 runCatching {
                     MusicDeviceScanner.scanNextMediaBatch(
                         context, repository,
@@ -386,6 +456,7 @@ private fun LibraryScreen(
                         includeVideo = videoAllowed
                     )
                 }.onSuccess { result ->
+                    showFeedback("Biblioteca actualizada correctamente.", MusicFeedbackType.SUCCESS)
                     scanStatus = if (result.imported == 0) "No quedan más archivos multimedia con los permisos concedidos." else
                         "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes importar los siguientes cinco." else "Exploración completada."
                 }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}" }
@@ -570,7 +641,18 @@ private fun LibraryScreen(
                         Text(if (track.source == "device-video") "Vídeo del dispositivo" else if (track.source == "device-audio" || track.source == "device") track.artistName.ifBlank { "Audio local" } else "Catálogo", color = colors.muted, fontSize = 11.sp)
                     }
                     TextButton(onClick = {
-                        scope.launch { repository.setFavorite(track.id, !track.isFavorite) }
+                        scope.launch {
+                            runCatching { repository.setFavorite(track.id, !track.isFavorite) }
+                                .onSuccess {
+                                    showFeedback(
+                                        if (track.isFavorite) "Se quitó de tus favoritos." else "¡Canción guardada correctamente en favoritos!",
+                                        MusicFeedbackType.SUCCESS
+                                    )
+                                }
+                                .onFailure {
+                                    showFeedback("No se pudo actualizar favoritos. Inténtalo de nuevo.", MusicFeedbackType.ERROR)
+                                }
+                        }
                     }) {
                         Text(if (track.isFavorite) "♥" else "♡", color = colors.accent, fontSize = 19.sp)
                     }
@@ -592,12 +674,32 @@ private fun LibraryScreen(
                     }, enabled = !track.mediaUri.isNullOrBlank()) {
                         Text("↗", color = colors.accent, fontSize = 17.sp)
                     }
-                    TextButton(onClick = {
-                        scope.launch { repository.removeTrack(track.id) }
-                    }) { Text("Quitar", color = colors.muted, fontSize = 10.sp) }
+                    TextButton(onClick = { trackPendingRemoval = track }) {
+                        Text("Quitar", color = colors.muted, fontSize = 10.sp)
+                    }
                 }
             }
         }
+    }
+    trackPendingRemoval?.let { track ->
+        AlertDialog(
+            onDismissRequest = { trackPendingRemoval = null },
+            title = { Text("Quitar canción") },
+            text = { Text("¿Quieres quitar esta canción de tu biblioteca?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    trackPendingRemoval = null
+                    scope.launch {
+                        runCatching { repository.removeTrack(track.id) }
+                            .onSuccess { showFeedback("La canción se quitó de tu biblioteca.", MusicFeedbackType.SUCCESS) }
+                            .onFailure { showFeedback("No se pudo quitar la canción. Inténtalo de nuevo.", MusicFeedbackType.ERROR) }
+                    }
+                }) { Text("Quitar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { trackPendingRemoval = null }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
