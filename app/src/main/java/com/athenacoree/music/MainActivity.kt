@@ -610,19 +610,30 @@ private fun LibraryScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
                         .background(colors.surface).clickable {
-                            track.mediaUri?.let { media ->
-                                if (track.source == "device-video") {
-                                    runCatching {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
-                                            setDataAndType(Uri.parse(media), "video/*")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        })
-                                    }
-                                } else {
+                            val media = track.mediaUri
+                            if (media.isNullOrBlank()) {
+                                showFeedback("Este elemento no tiene un archivo reproducible.", MusicFeedbackType.ERROR)
+                            } else if (track.source == "device-video") {
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(Uri.parse(media), "video/*")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    })
+                                }.onSuccess {
+                                    showFeedback("Abriendo vídeo…", MusicFeedbackType.INFO)
+                                }.onFailure {
+                                    showFeedback("No se pudo abrir este vídeo en el dispositivo.", MusicFeedbackType.ERROR)
+                                }
+                            } else {
+                                runCatching {
                                     val audioQueue = visibleTracks.filter { it.mediaUri != null && it.source != "device-video" }
                                         .map { Uri.parse(it.mediaUri) to it.title }
                                     val selectedIndex = audioQueue.indexOfFirst { it.first == Uri.parse(media) }.coerceAtLeast(0)
                                     MusicPlaybackController.playQueue(context, audioQueue, selectedIndex)
+                                }.onSuccess {
+                                    showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
+                                }.onFailure {
+                                    showFeedback("No se pudo reproducir esta canción.", MusicFeedbackType.ERROR)
                                 }
                             }
                         }.padding(13.dp),
