@@ -22,7 +22,7 @@
 - [ ] Test registration, email confirmation, sign-in, session restoration and sign-out on a real Android device.
 
 - [x] Reuse the existing Interaccion Supabase project without changing its existing tables.
-- [x] Apply Music schema and security migrations `0001` through `0004`.
+- [x] Apply Music schema and security migrations `0001` through `0007` (verified in the remote migration history).
 - [ ] Create Firebase Android app registration and add its configuration file (no Firebase Auth or Firestore required).
 - [ ] Add FCM token lifecycle, notification channels and Android 13+ permission handling.
 - [x] Deploy the secured Supabase push Edge Function.\n- [ ] Configure Firebase service-account and webhook secrets, then connect the Database Webhook.
