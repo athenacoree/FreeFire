@@ -18,7 +18,7 @@ internal data class CatalogSummary(
  * The summary is capped to a generous sample so the profile screen stays light.
  */
 internal object MusicCatalogRepository {
-    private const val SUMMARY_LIMIT = 1000
+    private const val SUMMARY_LIMIT = 1000L
 
     suspend fun loadSummary(): CatalogSummary {
         return CatalogSummary(
