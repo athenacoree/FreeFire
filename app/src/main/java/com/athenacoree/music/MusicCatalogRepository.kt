@@ -1,8 +1,11 @@
 package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.query.Count
-import io.github.jan.supabase.postgrest.query.count
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class CatalogId(val id: String)
+
 internal data class CatalogSummary(
     val artists: Int,
     val albums: Int,
@@ -11,10 +14,12 @@ internal data class CatalogSummary(
 )
 
 /**
- * Uses PostgREST exact counts rather than downloading every id. This avoids
- * the default row limit making large catalogs appear smaller than they are.
+ * Checks the public catalog without downloading every complete record.
+ * The summary is capped to a generous sample so the profile screen stays light.
  */
 internal object MusicCatalogRepository {
+    private const val SUMMARY_LIMIT = 1000
+
     suspend fun loadSummary(): CatalogSummary {
         return CatalogSummary(
             artists = countRows("artists"),
@@ -25,10 +30,12 @@ internal object MusicCatalogRepository {
     }
 
     private suspend fun countRows(table: String): Int {
-        val count = MusicSupabase.client
+        return MusicSupabase.client
             .from(table)
-            .select { count(Count.EXACT) }
-            .countOrNull()
-        return count?.toInt() ?: 0
+            .select {
+                limit(count = SUMMARY_LIMIT)
+            }
+            .decodeList<CatalogId>()
+            .size
     }
 }
