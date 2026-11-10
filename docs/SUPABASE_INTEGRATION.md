@@ -28,7 +28,7 @@ The app's connection check reads row IDs from the four public catalog tables. Ca
 
 ## Migrations
 
-The seven Music migration files are stored in `supabase/migrations`. The remote database had the first six Music migrations recorded; the missing `music_playlist_notifications` migration has now been applied to the shared project and should be verified in the migration history.
+The seven Music migration files are stored in `supabase/migrations`. The remote database had the first six Music migrations recorded; the missing `music_playlist_notifications` migration has now been applied to the shared project and verified in the remote migration history.
 
 ## Security notes
 
