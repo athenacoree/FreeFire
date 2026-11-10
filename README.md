@@ -2,26 +2,45 @@
 
 Aplicación Android nativa para organizar y reproducir música y vídeos autorizados.
 
-## Estado inicial
-Esta primera base utiliza Kotlin y Jetpack Compose. La experiencia está pensada para funcionar **local-first**: la interfaz y la biblioteca local no dependen de Render.
+## Plataforma y herramientas
+- Android 8.0 o superior (API 26+).
+- Kotlin 2.4.21, Jetpack Compose y Material 3.
+- Android Gradle Plugin 8.13.2, Gradle 8.13 y JDK 17.
+- Android SDK de compilación 36; target SDK 35.
+- Room para la biblioteca local y DataStore para preferencias.
+- Media3 para reproducción nativa de archivos locales/autorizados.
+- Supabase Kotlin 3.9.0 para Auth y catálogo compartido.
+- Coil 3.6.3 para portadas, con caché local limitada.
 
 ## Decisiones del producto
 - Tema claro y oscuro, seleccionables desde la aplicación.
-- Uso como invitado; la cuenta será opcional.
-- Biblioteca mixta: vista general y apartados de artistas, álbumes, canciones y vídeos.
-- Supabase será el servicio de sincronización y datos compartidos.
-- Render será opcional y se reservará para tareas especiales que realmente necesiten servidor.
-
-## Requisitos
-- Android Studio compatible con Android Gradle Plugin 8.7.3.
-- JDK 17.
-- Android SDK 35.
+- Uso como invitado; la cuenta es opcional.
+- Biblioteca local-first: la aplicación sigue funcionando sin conexión.
+- Supabase es el servicio de autenticación, catálogo y listas colaborativas.
+- Music reutiliza el proyecto Supabase compartido con Interaccion, manteniendo las tablas y políticas de Music separadas.
+- Render no es necesario para iniciar la aplicación ni para sus funciones esenciales.
 
 ## Configuración
-Abre el proyecto en Android Studio y sincroniza Gradle. No se incluyen claves ni secretos de Supabase en el repositorio. La configuración de Supabase se añadirá mediante propiedades locales seguras cuando se integre el módulo de datos.
+Abre el repositorio en Android Studio compatible con AGP 8.13.2, con JDK 17 y Android SDK 36, y sincroniza Gradle.
+
+La URL de Supabase y la clave **publishable** están definidas como valores públicos de configuración Android. Una clave publishable está diseñada para clientes móviles y no es una credencial administrativa. Nunca agregues una clave Supabase secret o `service_role` al APK, al repositorio o a GitHub.
+
+## Construcción de APK
+El workflow de GitHub Actions compila ` :app:assembleDebug ` al actualizar `main` y publica un APK de prueba firmado en el artefacto `Music-test-debug-APK`. No genera un AAB de producción.
+
+## Estado del catálogo
+Las tablas de artistas, álbumes, canciones y vídeos ya existen y tienen RLS/políticas de lectura pública. En este momento están vacías; la app podrá conectarse correctamente, pero no mostrará contenido hasta que se carguen metadatos aprobados en el catálogo.
 
 ## Restricciones de contenido
-La reproducción en segundo plano y las descargas se implementarán para archivos que el usuario posea o tenga permiso de utilizar. Los vídeos de YouTube se reproducirán mediante el reproductor oficial, sin extracción ni descarga.
+La reproducción en segundo plano y las descargas se limitan a archivos que el usuario posea o tenga permiso de utilizar. Los vídeos de YouTube se abren mediante el reproductor oficial; no se extrae, descarga ni reproduce su audio en segundo plano.
 
-## Push notifications
-Signed-in users will be able to opt into Android push notifications. Supabase stores notification events and triggers an Edge Function; Firebase Cloud Messaging (FCM) delivers them even when Music is closed. Guest mode stays local-only. Setup and security details: [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md).
+## Documentación
+- [Arquitectura](docs/ARCHITECTURE.md)
+- [Integración Supabase](docs/SUPABASE_INTEGRATION.md)
+- [Autenticación](docs/AUTHENTICATION.md)
+- [Almacenamiento local](docs/LOCAL_STORAGE.md)
+- [Notificaciones push](docs/PUSH_NOTIFICATIONS.md)
+- [Auditoría de compatibilidad](docs/COMPATIBILITY_AUDIT.md)
+
+## Notificaciones push
+La bandeja dentro de la app está conectada a Supabase para usuarios registrados. La entrega push mediante FCM aún requiere terminar la configuración Firebase y el webhook; no se considera activa hasta completar esas pruebas.
