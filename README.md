@@ -6,7 +6,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Android 8.0 o superior (API 26+).
 - Kotlin 2.4.21, Jetpack Compose y Material 3.
 - Android Gradle Plugin 8.13.2, Gradle 8.13 y JDK 17.
-- Android SDK de compilación 37; target SDK 35.
+- Android SDK de compilación 37 (canal preview, solo para compilar); target SDK 35. La versión mínima de instalación sigue siendo Android 8.0 (API 26).
 - Room para la biblioteca local y DataStore para preferencias.
 - Media3 para reproducción nativa de archivos locales/autorizados.
 - Supabase Kotlin 3.9.0 para Auth y catálogo compartido.
