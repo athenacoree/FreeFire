@@ -33,7 +33,8 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK packages
-        run: sdkmanager --channel=3 "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --list --channel=3 | grep -E "platforms;android-37\\.0"
+sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Build test APK (debug)
         run: gradle --no-daemon --stacktrace :app:assembleDebug
