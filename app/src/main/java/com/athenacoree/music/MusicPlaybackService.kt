@@ -10,7 +10,6 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
-import java.util.concurrent.atomic.AtomicBoolean
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -36,20 +35,42 @@ class MusicPlaybackService : MediaSessionService() {
 
 internal object MusicPlaybackController {
     @Volatile private var controller: MediaController? = null
-    private val connecting = AtomicBoolean(false)
+    private val lock = Any()
+    private var connecting = false
+    private val pendingActions = mutableListOf<(MediaController) -> Unit>()
 
     private fun connect(context: Context, action: (MediaController) -> Unit) {
-        controller?.let { action(it); return }
-        if (!connecting.compareAndSet(false, true)) return
+        controller?.let { ready ->
+            runCatching { action(ready) }
+            return
+        }
+
+        val shouldStartConnection = synchronized(lock) {
+            pendingActions += action
+            if (connecting) {
+                false
+            } else {
+                connecting = true
+                true
+            }
+        }
+        if (!shouldStartConnection) return
+
         val app = context.applicationContext
         val token = SessionToken(app, ComponentName(app, MusicPlaybackService::class.java))
         val future = MediaController.Builder(app, token).buildAsync()
         future.addListener({
-            runCatching { future.get() }.onSuccess { connected ->
-                controller = connected
-                action(connected)
+            val result = runCatching { future.get() }
+            val queued = synchronized(lock) {
+                connecting = false
+                result.getOrNull()?.let { controller = it }
+                val actions = if (result.isSuccess) pendingActions.toList() else emptyList()
+                pendingActions.clear()
+                actions
             }
-            connecting.set(false)
+            result.getOrNull()?.let { ready ->
+                queued.forEach { queuedAction -> runCatching { queuedAction(ready) } }
+            }
         }, app.mainExecutor)
     }
 
@@ -82,8 +103,11 @@ internal object MusicPlaybackController {
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
 
     fun release() {
-        controller?.release()
-        controller = null
-        connecting.set(false)
+        synchronized(lock) {
+            controller?.release()
+            controller = null
+            pendingActions.clear()
+            connecting = false
+        }
     }
 }
