@@ -22,7 +22,6 @@ class MusicApplication : Application(), SingletonImageLoader.Factory {
                     .maxSizeBytes(48L * 1024L * 1024L)
                     .build()
             }
-            .crossfade(true)
             .build()
     }
 }
