@@ -1,6 +1,8 @@
 package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.order
 import io.github.jan.supabase.postgrest.query.range
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -69,7 +71,10 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
         var from = 0L
         while (true) {
             val page = MusicSupabase.client.from(table)
-                .select { range(from..(from + PAGE_SIZE - 1)) }
+                .select {
+                    order(column = "id", order = Order.ASCENDING)
+                    range(from..(from + PAGE_SIZE - 1))
+                }
                 .decodeList<T>()
             result.addAll(page)
             if (page.size < PAGE_SIZE) return result
