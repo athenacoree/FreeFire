@@ -13,7 +13,7 @@ Preferences are stored with DataStore (light/dark appearance and data-saver pref
 
 ## Current scope
 
-The Room schema, repository and first library screen are wired together. Users can select audio files through Android’s document picker, keep their URI permission, see them in the library, mark favorites and start native playback through a Media3 session service. DataStore persists the appearance choice. Catalog synchronization still needs a version-aware merge strategy before it is enabled. Never replace a local file URI with a remote catalog URL during sync.
+The Room schema, repository and first library screen are wired together. Users can select audio files through Android’s document picker, keep their URI permission, see them in the library, mark favorites and start native playback through a Media3 session service. DataStore persists the appearance choice. Catalog synchronization now uses version-aware merges and paged remote reads; previously cached records remain available when offline. Never replace a local file URI with a remote catalog URL during sync.
 
 
 ## Remote catalog and artwork
