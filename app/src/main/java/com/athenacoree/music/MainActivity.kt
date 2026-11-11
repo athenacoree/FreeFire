@@ -222,10 +222,14 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var isSeeking by remember(state.mediaId) { mutableStateOf(false) }
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
+    LaunchedEffect(state.mediaId) {
+        val saved = MusicLyricsStorage.load(context, state.mediaId)
+        if (saved.isNotEmpty()) onLyricsChange(state.mediaId, saved)
+    }
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("No se pudo leer el archivo.") }
-                .onSuccess { raw -> onLyricsChange(state.mediaId, MusicLyricsParser.parse(raw)) }
+                .onSuccess { raw -> MusicLyricsStorage.save(context, state.mediaId, raw); onLyricsChange(state.mediaId, MusicLyricsParser.parse(raw)) }
         }
     }
     LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics, isSeeking) {
