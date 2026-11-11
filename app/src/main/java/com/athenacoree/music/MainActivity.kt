@@ -1268,6 +1268,24 @@ private fun PlaylistManagerScreen(
     var message by rememberSaveable { mutableStateOf("Las listas locales funcionan sin cuenta.") }
     var busy by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    // Rebuild smart-playlist projections only when their source lists change.
+    val recentTracks = remember(localTracks, recentPlayback) {
+        recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
+            .distinctBy { it.id }
+    }
+    val topTracks = remember(localTracks, mostPlayed) {
+        mostPlayed.mapNotNull { stat -> localTracks.firstOrNull { it.id == stat.trackId } }
+            .distinctBy { it.id }
+    }
+    val favoritePlayable = remember(favoriteTracks) {
+        favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+    }
+    val recentPlayable = remember(recentTracks) {
+        recentTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+    }
+    val topPlayable = remember(topTracks) {
+        topTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1309,13 +1327,6 @@ private fun PlaylistManagerScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Listas inteligentes", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text("Se actualizan automáticamente con tu actividad y tus favoritos.", color = colors.muted, fontSize = 11.sp)
-                val recentTracks = recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
-                    .distinctBy { it.id }
-                val topTracks = mostPlayed.mapNotNull { stat -> localTracks.firstOrNull { it.id == stat.trackId } }
-                    .distinctBy { it.id }
-                val favoritePlayable = favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
-                val recentPlayable = recentTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
-                val topPlayable = topTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
                 SmartPlaylistCard(
                     title = "Tus favoritos",
                     subtitle = "Todas las canciones que marcaste con ♥",
