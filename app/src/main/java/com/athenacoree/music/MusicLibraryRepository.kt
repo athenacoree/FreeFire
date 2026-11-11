@@ -1,6 +1,9 @@
 package com.athenacoree.music
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 
 /**
  * Local-first library API. Guest data is stored only on this device.
@@ -15,9 +18,18 @@ internal class MusicLibraryRepository(
     val trackCount: Flow<Int> = dao.observeTrackCount()
     val playbackCount: Flow<Int> = dao.observePlaybackCount()
     val recentPlayback: Flow<List<PlaybackHistoryEntity>> = dao.observeRecentPlayback()
+    val recentlyPlayedTracks: Flow<List<LocalTrackEntity>> = dao.observeRecentlyPlayedTracks()
     val mostPlayed: Flow<List<PlaybackStat>> = dao.observeMostPlayed()
 
-    fun search(query: String): Flow<List<LocalTrackEntity>> = dao.searchTracks(query.trim())
+    fun search(query: String): Flow<List<LocalTrackEntity>> = flow {
+        delay(180)
+        emitAll(dao.searchTracks(query.trim()))
+    }
+
+    fun searchFavorites(query: String): Flow<List<LocalTrackEntity>> = flow {
+        delay(180)
+        emitAll(dao.searchFavoriteTracks(query.trim()))
+    }
 
     fun catalog(kind: String): Flow<List<CatalogEntryEntity>> = dao.observeCatalog(kind)
 
