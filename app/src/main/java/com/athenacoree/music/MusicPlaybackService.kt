@@ -104,6 +104,7 @@ class MusicPlaybackService : MediaSessionService() {
 internal data class MusicPlaybackUiState(
     val title: String,
     val artist: String,
+    val mediaId: String,
     val isPlaying: Boolean,
     val hasPrevious: Boolean,
     val hasNext: Boolean
@@ -118,6 +119,7 @@ internal object MusicPlaybackController {
         _playbackState.value = if (item == null) null else MusicPlaybackUiState(
             title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { item.mediaId.ifBlank { "Reproduciendo" } },
             artist = item.mediaMetadata.artist?.toString().orEmpty(),
+            mediaId = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId },
             isPlaying = player.isPlaying,
             hasPrevious = player.hasPreviousMediaItem(),
             hasNext = player.hasNextMediaItem()
