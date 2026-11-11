@@ -218,6 +218,8 @@ private fun MusicApp() {
 private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
+    var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
+    var isSeeking by remember(state.mediaId) { mutableStateOf(false) }
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -226,10 +228,16 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                 .onSuccess { raw -> onLyricsChange(state.mediaId, MusicLyricsParser.parse(raw)) }
         }
     }
-    LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics) {
-        if (visualMode == "karaoke") {
-            while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
+    LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics, isSeeking) {
+        while (true) {
+            durationMs = MusicPlaybackController.currentDuration()
+            if (!isSeeking) positionMs = MusicPlaybackController.currentPosition()
+            delay(if (visualMode == "karaoke" && state.isPlaying) 100L else 450L)
         }
+    }
+    fun timeLabel(value: Long): String {
+        val seconds = (value.coerceAtLeast(0L) / 1000L)
+        return "%d:%02d".format(seconds / 60L, seconds % 60L)
     }
     val activeIndex = currentLyrics.indexOfLast { it.timeMs <= positionMs }
     val previousLine = currentLyrics.getOrNull(activeIndex - 1)
@@ -247,6 +255,21 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White) }
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
+                    }
+                }
+                if (durationMs > 0L) {
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        Slider(
+                            value = positionMs.coerceIn(0L, durationMs).toFloat(),
+                            onValueChange = { positionMs = it.toLong(); isSeeking = true },
+                            onValueChangeFinished = { MusicPlaybackController.seekTo(positionMs); isSeeking = false },
+                            valueRange = 0f..durationMs.toFloat(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(timeLabel(positionMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
+                            Text(timeLabel(durationMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
+                        }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
