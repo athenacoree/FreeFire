@@ -978,8 +978,8 @@ private fun LibraryScreen(
                                 showFeedback("Preparando la reproducción…", MusicFeedbackType.LOADING)
                                 runCatching {
                                     val audioQueue = visibleTracks.filter { it.mediaUri != null && it.source != "device-video" }
-                                        .map { Uri.parse(it.mediaUri) to it.title }
-                                    val selectedIndex = audioQueue.indexOfFirst { it.first == Uri.parse(media) }.coerceAtLeast(0)
+                                        .map { MusicPlaybackItem(Uri.parse(it.mediaUri), it.title, it.artistName, it.albumTitle, it.artworkUri) }
+                                    val selectedIndex = audioQueue.indexOfFirst { it.uri == Uri.parse(media) }.coerceAtLeast(0)
                                     MusicPlaybackController.playQueue(context, audioQueue, selectedIndex) { result ->
                                         result.onSuccess {
                                             showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
@@ -1297,7 +1297,7 @@ private fun CatalogBrowserScreen(
                             setDataAndType(Uri.parse(offline.mediaUri), "video/*")
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }) }
-                    } else offline.mediaUri?.let { MusicPlaybackController.play(context, Uri.parse(it), offline.title) }
+                    } else offline.mediaUri?.let { MusicPlaybackController.play(context, MusicPlaybackItem(Uri.parse(it), offline.title, offline.artistName, offline.albumTitle, offline.artworkUri)) }
                     sourceChoice = null
                 }) { Text("Offline · dispositivo") }
             },
@@ -1574,7 +1574,7 @@ private fun playSmartPlaylist(
         showFeedback("Esta lista todavía no tiene canciones reproducibles.", MusicFeedbackType.INFO)
         return
     }
-    val queue = playable.map { Uri.parse(it.mediaUri) to it.title }
+    val queue = playable.map { MusicPlaybackItem(Uri.parse(it.mediaUri), it.title, it.artistName, it.albumTitle, it.artworkUri) }
     val start = selected.coerceIn(queue.indices)
     showFeedback("Preparando tu lista inteligente…", MusicFeedbackType.LOADING)
     MusicPlaybackController.playQueue(context, queue, start) { result ->
