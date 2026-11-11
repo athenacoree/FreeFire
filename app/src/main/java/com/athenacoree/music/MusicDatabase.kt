@@ -135,8 +135,25 @@ interface MusicLibraryDao {
     @Query("SELECT * FROM catalog_entries WHERE id = :id LIMIT 1")
     suspend fun getCatalogEntry(id: String): CatalogEntryEntity?
 
+    @Query("SELECT * FROM catalog_entries WHERE id IN (:ids)")
+    suspend fun getCatalogEntriesByIds(ids: List<String>): List<CatalogEntryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveCatalogEntry(entry: CatalogEntryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveCatalogEntries(entries: List<CatalogEntryEntity>)
+
+    @Transaction
+    suspend fun upsertCatalogEntriesIfNewer(entries: List<CatalogEntryEntity>) {
+        if (entries.isEmpty()) return
+        val existing = getCatalogEntriesByIds(entries.map { it.id }).associateBy { it.id }
+        val changed = entries.filter { incoming ->
+            val current = existing[incoming.id]
+            current == null || incoming.version >= current.version
+        }
+        if (changed.isNotEmpty()) saveCatalogEntries(changed)
+    }
 
     @Transaction
     suspend fun upsertCatalogEntryIfNewer(entry: CatalogEntryEntity) {
