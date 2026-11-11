@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 internal data class DeviceScanResult(val imported: Int, val hasMore: Boolean, val scanned: Int)
 
 internal object MusicDeviceScanner {
-    private const val BATCH_SIZE = 5
+    private const val BATCH_SIZE = 100
     private const val PREFS = "music_device_scan"
     private const val OFFSET = "media_offset"
     private const val FILTER = "media_filter"
