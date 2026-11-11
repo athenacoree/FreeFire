@@ -76,8 +76,10 @@ internal object MusicEqualizerController {
         runCatching {
             if (preset.toInt() in 0 until target.numberOfPresets.toInt()) {
                 target.usePreset(preset)
+                target.enabled = true
                 val count = target.numberOfBands.toInt()
                 _state.value = _state.value.copy(
+                    enabled = true,
                     bands = (0 until count).map { target.getBandLevel(it.toShort()).toInt() }
                 )
             }
