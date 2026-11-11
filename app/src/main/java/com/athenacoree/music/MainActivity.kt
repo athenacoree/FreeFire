@@ -73,6 +73,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -881,6 +882,7 @@ private fun CatalogBrowserScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val dataSaver by MusicPreferences.dataSaver(context).collectAsState(initial = false)
+    val equalizer by MusicEqualizerController.state.collectAsState()
     val kinds = listOf("video" to "Vídeos", "artist" to "Artistas", "album" to "Álbumes", "track" to "Canciones")
 
     Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp)) {
@@ -1564,6 +1566,30 @@ private fun ProfileScreen(
             }
         }
 
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(colors.surface).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Ecualizador", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(if (equalizer.available) "Ajusta las bandas del audio en reproducción." else "Inicia una canción para activar el ecualizador del dispositivo.", color = colors.muted, fontSize = 11.sp)
+                }
+                Switch(checked = equalizer.enabled, onCheckedChange = { MusicEqualizerController.setEnabled(it) }, enabled = equalizer.available)
+            }
+            if (equalizer.available) {
+                equalizer.bands.forEachIndexed { index, level ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val hz = equalizer.frequenciesHz.getOrNull(index) ?: 0
+                            Text(if (hz >= 1000) "${hz / 1000.0} kHz" else "$hz Hz", color = colors.text, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            Text("${level / 100} dB", color = colors.muted, fontSize = 10.sp)
+                        }
+                        Slider(value = level.toFloat(), onValueChange = { MusicEqualizerController.setBand(index, it.toInt()) }, valueRange = equalizer.minLevel.toFloat()..equalizer.maxLevel.toFloat(), enabled = equalizer.enabled)
+                    }
+                }
+            }
+        }
         Text("Preferencias", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Row(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
