@@ -8,19 +8,19 @@ internal object MusicLyricsParser {
 
     fun parse(source: String): List<MusicLyricsLine> {
         val result = mutableListOf<MusicLyricsLine>()
-        source.lineSequence().forEach { raw ->
+        for (raw in source.lineSequence()) {
             val matches = timestamp.findAll(raw).toList()
-            if (matches.isEmpty()) return@forEach
+            if (matches.isEmpty()) continue
             val lyric = timestamp.replace(raw, "").trim()
-            if (lyric.isBlank()) return@forEach
-            matches.forEach { match ->
-                val minutes = match.groupValues[1].toLongOrNull() ?: return@forEach
-                val seconds = match.groupValues[2].toLongOrNull() ?: return@forEach
-                val fractionText = match.groupValues[3]
-                val millis = when (fractionText.length) {
-                    1 -> (fractionText.toLongOrNull() ?: 0L) * 100L
-                    2 -> (fractionText.toLongOrNull() ?: 0L) * 10L
-                    3 -> fractionText.toLongOrNull() ?: 0L
+            if (lyric.isBlank()) continue
+            for (match in matches) {
+                val minutes = match.groupValues[1].toLongOrNull() ?: continue
+                val seconds = match.groupValues[2].toLongOrNull() ?: continue
+                val fraction = match.groupValues[3]
+                val millis = when (fraction.length) {
+                    1 -> (fraction.toLongOrNull() ?: 0L) * 100L
+                    2 -> (fraction.toLongOrNull() ?: 0L) * 10L
+                    3 -> fraction.toLongOrNull() ?: 0L
                     else -> 0L
                 }
                 if (seconds < 60) result += MusicLyricsLine((minutes * 60 + seconds) * 1000 + millis, lyric)
