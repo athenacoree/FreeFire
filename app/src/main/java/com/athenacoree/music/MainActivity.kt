@@ -1944,7 +1944,7 @@ private fun ProfileScreen(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text("Almacenamiento y caché", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Text("Caché de portadas limitada a 48 MB", color = colors.muted, fontSize = 11.sp)
+                Text("Caché de portadas limitada a 128 MB", color = colors.muted, fontSize = 11.sp)
             }
         }
     }
