@@ -183,6 +183,8 @@ internal object MusicPlaybackController {
         sleepTimerJob?.cancel()
         sleepTimerJob = null
     }
+    fun currentPosition(): Long = controller?.currentPosition ?: 0L
+
     fun resume(context: Context) = connect(context) { it.play() }
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
