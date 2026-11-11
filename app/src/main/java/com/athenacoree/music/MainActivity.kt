@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -124,6 +126,7 @@ private fun MusicApp() {
     val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = false)
     val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
+    val playbackState by MusicPlaybackController.playbackState.collectAsState(initial = null)
     var feedback by remember { mutableStateOf<MusicFeedback?>(null) }
     val showFeedback: (String, MusicFeedbackType) -> Unit = { message, type ->
         feedback = MusicFeedback(message, type)
@@ -196,7 +199,57 @@ private fun MusicApp() {
                     MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                 }
             }
+            MusicMiniPlayer(playbackState, context)
             MusicFeedbackBanner(feedback)
+        }
+    }
+}
+
+@Composable
+private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context) {
+    if (state == null) return
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        Surface(
+            color = Color(0xFF20232B),
+            shape = RoundedCornerShape(18.dp),
+            shadowElevation = 12.dp,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
+                        .background(Color(0xFF39432F)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(state.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 10.sp,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White)
+                }
+                IconButton(onClick = {
+                    if (state.isPlaying) MusicPlaybackController.pause(context)
+                    else MusicPlaybackController.resume(context)
+                }) {
+                    Icon(
+                        if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (state.isPlaying) "Pausar" else "Continuar",
+                        tint = Color(0xFFB7F36B)
+                    )
+                }
+                IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White)
+                }
+            }
         }
     }
 }
@@ -208,7 +261,7 @@ private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
             visible = feedback != null,
             enter = fadeIn() + scaleIn(initialScale = 0.94f),
             exit = fadeOut(),
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 88.dp)
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 150.dp)
         ) {
             val current = feedback
             if (current != null) {
