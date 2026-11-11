@@ -12,6 +12,12 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -50,6 +56,8 @@ internal object MusicPlaybackController {
     private val lock = Any()
     private var connecting = false
     private val pendingActions = mutableListOf<Pair<(MediaController) -> Unit, (Result<Unit>) -> Unit>>()
+    private val timerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var sleepTimerJob: Job? = null
 
     private fun connect(
         context: Context,
@@ -129,7 +137,22 @@ internal object MusicPlaybackController {
         }, onComplete)
     }
 
-    fun pause(context: Context) = connect(context) { it.pause() }
+    fun pause(context: Context, onComplete: (Result<Unit>) -> Unit = {}) =
+        connect(context, { it.pause() }, onComplete)
+
+    fun setSleepTimer(context: Context, minutes: Int, onFinished: (Result<Unit>) -> Unit) {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = timerScope.launch {
+            delay(minutes.coerceIn(1, 240) * 60_000L)
+            pause(context, onFinished)
+            sleepTimerJob = null
+        }
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+    }
     fun resume(context: Context) = connect(context) { it.play() }
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
@@ -140,6 +163,8 @@ internal object MusicPlaybackController {
             controller = null
             pendingActions.clear()
             connecting = false
+            sleepTimerJob?.cancel()
+            sleepTimerJob = null
         }
     }
 }
