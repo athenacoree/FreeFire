@@ -100,6 +100,8 @@ class MusicPlaybackService : MediaSessionService() {
     }
 }
 
+internal data class MusicQueueItem(val index: Int, val title: String, val artist: String, val mediaId: String, val isCurrent: Boolean)
+
 internal data class MusicPlaybackUiState(
     val title: String,
     val artist: String,
@@ -108,7 +110,8 @@ internal data class MusicPlaybackUiState(
     val hasPrevious: Boolean,
     val hasNext: Boolean,
     val shuffleEnabled: Boolean,
-    val repeatMode: Int
+    val repeatMode: Int,
+    val queue: List<MusicQueueItem>
 )
 
 internal object MusicPlaybackController {
@@ -125,7 +128,17 @@ internal object MusicPlaybackController {
             hasPrevious = player.hasPreviousMediaItem(),
             hasNext = player.hasNextMediaItem(),
             shuffleEnabled = player.shuffleModeEnabled,
-            repeatMode = player.repeatMode
+            repeatMode = player.repeatMode,
+            queue = (0 until player.mediaItemCount).map { index ->
+                val queuedItem = player.getMediaItemAt(index)
+                MusicQueueItem(
+                    index = index,
+                    title = queuedItem.mediaMetadata.title?.toString().orEmpty().ifBlank { "Pista ${index + 1}" },
+                    artist = queuedItem.mediaMetadata.artist?.toString().orEmpty(),
+                    mediaId = queuedItem.localConfiguration?.uri?.toString().orEmpty().ifBlank { queuedItem.mediaId },
+                    isCurrent = index == player.currentMediaItemIndex
+                )
+            }
         )
     }
     private val playerListener = object : Player.Listener {
@@ -242,6 +255,7 @@ internal object MusicPlaybackController {
     fun resume(context: Context) = connect(context) { it.play() }
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
+    fun playQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) { player.seekToDefaultPosition(index); player.play() } }
     fun toggleShuffle(context: Context) = connect(context) { it.shuffleModeEnabled = !it.shuffleModeEnabled }
     fun cycleRepeat(context: Context) = connect(context) { player ->
         player.repeatMode = when (player.repeatMode) {
