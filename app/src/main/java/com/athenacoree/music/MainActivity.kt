@@ -1268,14 +1268,13 @@ private fun PlaylistManagerScreen(
     var message by rememberSaveable { mutableStateOf("Las listas locales funcionan sin cuenta.") }
     var busy by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    // Rebuild smart-playlist projections only when their source lists change.
-    val recentTracks = remember(localTracks, recentPlayback) {
-        recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
-            .distinctBy { it.id }
+    // Build one indexed lookup and reuse it for all smart-playlist projections.
+    val tracksById = remember(localTracks) { localTracks.associateBy { it.id } }
+    val recentTracks = remember(tracksById, recentPlayback) {
+        recentPlayback.mapNotNull { entry -> tracksById[entry.trackId] }.distinctBy { it.id }
     }
-    val topTracks = remember(localTracks, mostPlayed) {
-        mostPlayed.mapNotNull { stat -> localTracks.firstOrNull { it.id == stat.trackId } }
-            .distinctBy { it.id }
+    val topTracks = remember(tracksById, mostPlayed) {
+        mostPlayed.mapNotNull { stat -> tracksById[stat.trackId] }.distinctBy { it.id }
     }
     val favoritePlayable = remember(favoriteTracks) {
         favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
