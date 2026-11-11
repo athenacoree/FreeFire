@@ -72,7 +72,7 @@ internal object MusicEqualizerController {
     fun applyPreset(preset: Short) {
         val target = effect ?: return
         runCatching {
-            if (preset in 0 until target.numberOfPresets) {
+            if (preset.toInt() in 0 until target.numberOfPresets.toInt()) {
                 target.usePreset(preset)
                 val count = target.numberOfBands.toInt()
                 _state.value = _state.value.copy(
