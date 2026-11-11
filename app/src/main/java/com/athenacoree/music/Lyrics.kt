@@ -1,5 +1,8 @@
 package com.athenacoree.music
 
+import android.content.Context
+import java.security.MessageDigest
+
 /** A timestamped line imported from a user-owned LRC file. */
 internal data class MusicLyricsLine(val timeMs: Long, val text: String)
 
@@ -55,5 +58,34 @@ internal object MusicLyricsStorage {
         val source = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
             .getString(key(mediaId), null) ?: return emptyList()
         return MusicLyricsParser.parse(source)
+    }
+}
+
+
+/** Stores only lyrics explicitly imported by the listener, locally on this device. */
+internal object MusicLyricsStorage {
+    private const val PREFS = "music_lyrics"
+    private const val MAX_LYRICS_CHARS = 64 * 1024
+
+    fun save(context: Context, mediaId: String, source: String) {
+        if (mediaId.isBlank()) return
+        val safeText = source.take(MAX_LYRICS_CHARS)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(storageKey(mediaId), safeText)
+            .apply()
+    }
+
+    fun load(context: Context, mediaId: String): List<MusicLyricsLine> {
+        if (mediaId.isBlank()) return emptyList()
+        val source = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(storageKey(mediaId), null) ?: return emptyList()
+        return MusicLyricsParser.parse(source)
+    }
+
+    private fun storageKey(mediaId: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(mediaId.toByteArray(Charsets.UTF_8))
+        return "lyrics_" + digest.take(16).joinToString("") { "%02x".format(it) }
     }
 }
