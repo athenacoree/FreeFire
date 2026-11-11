@@ -233,6 +233,8 @@ internal object MusicPlaybackController {
         sleepTimerJob = null
     }
     fun currentPosition(): Long = controller?.currentPosition ?: 0L
+    fun currentDuration(): Long = controller?.duration?.takeIf { it > 0L && it != C.TIME_UNSET } ?: 0L
+    fun seekTo(positionMs: Long) { controller?.seekTo(positionMs.coerceAtLeast(0L)) }
 
     fun resume(context: Context) = connect(context) { it.play() }
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
