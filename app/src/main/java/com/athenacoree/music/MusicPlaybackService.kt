@@ -3,6 +3,8 @@ package com.athenacoree.music
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.ExoPlayer
@@ -16,7 +18,17 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        val player = ExoPlayer.Builder(this).build().apply { setHandleAudioBecomingNoisy(true) }
+        val player = ExoPlayer.Builder(this).build().apply {
+            // Respect Android audio focus and pause appropriately when headphones are disconnected.
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                true
+            )
+            setHandleAudioBecomingNoisy(true)
+        }
         mediaSession = MediaSession.Builder(this, player).build()
     }
 
