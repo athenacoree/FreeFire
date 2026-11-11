@@ -723,19 +723,22 @@ private fun LibraryScreen(
     ) { uris ->
         if (uris.isNotEmpty()) scope.launch {
             showFeedback("Añadiendo ${uris.size} archivo(s)…", MusicFeedbackType.LOADING)
-            val importedTracks = mutableListOf<LocalTrackEntity>()
-            uris.forEach { uri ->
-                runCatching {
-                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    val displayName = context.contentResolver.query(
-                        uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
-                    )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "Archivo de audio"
-                    importedTracks += LocalTrackEntity(
-                        id = uri.toString(),
-                        title = displayName.substringBeforeLast('.', displayName),
-                        mediaUri = uri.toString(),
-                        source = "device"
-                    )
+            val importedTracks = withContext(Dispatchers.IO) {
+                buildList {
+                    uris.forEach { uri ->
+                        runCatching {
+                            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            val displayName = context.contentResolver.query(
+                                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+                            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "Archivo de audio"
+                            add(LocalTrackEntity(
+                                id = uri.toString(),
+                                title = displayName.substringBeforeLast('.', displayName),
+                                mediaUri = uri.toString(),
+                                source = "device"
+                            ))
+                        }
+                    }
                 }
             }
             if (importedTracks.isNotEmpty()) {
