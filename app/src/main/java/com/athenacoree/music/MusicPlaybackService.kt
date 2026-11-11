@@ -130,6 +130,7 @@ internal data class MusicQueueItem(val index: Int, val title: String, val artist
 internal data class MusicPlaybackUiState(
     val title: String,
     val artist: String,
+    val artworkUri: String?,
     val mediaId: String,
     val isPlaying: Boolean,
     val hasPrevious: Boolean,
@@ -149,6 +150,7 @@ internal object MusicPlaybackController {
         _playbackState.value = if (item == null) null else MusicPlaybackUiState(
             title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { item.mediaId.ifBlank { "Reproduciendo" } },
             artist = item.mediaMetadata.artist?.toString().orEmpty(),
+            artworkUri = item.mediaMetadata.artworkUri?.toString(),
             mediaId = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId },
             isPlaying = player.isPlaying,
             hasPrevious = player.hasPreviousMediaItem(),
