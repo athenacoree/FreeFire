@@ -29,6 +29,7 @@ class MusicPlaybackService : MediaSessionService() {
     private var pendingHistoryJob: Job? = null
     private var pendingHistoryKey: String? = null
     private var lastRecordedItemKey: String? = null
+    private var pendingListenedMs: Long = 0L
 
     private fun schedulePlaybackHistory(player: Player) {
         if (!player.isPlaying) {
@@ -55,7 +56,7 @@ class MusicPlaybackService : MediaSessionService() {
                     if (currentKey != itemKey) break
                     val duration = player.duration
                     val threshold = if (duration > 0L && duration != C.TIME_UNSET) (duration / 2L).coerceIn(1_000L, 30_000L) else 30_000L
-                    if (player.currentPosition >= threshold) {
+                    if (pendingListenedMs >= threshold) {
                         val dao = withContext(Dispatchers.IO) { MusicDatabase.getInstance(applicationContext).libraryDao() }
                         withContext(Dispatchers.IO) {
                             val localTrack = dao.findTrackByMediaUri(uri)
@@ -65,6 +66,7 @@ class MusicPlaybackService : MediaSessionService() {
                         break
                     }
                     delay(1_000L)
+                    if (player.isPlaying && player.currentMediaItemIndex >= 0) pendingListenedMs += 1_000L
                 }
             } finally {
                 if (pendingHistoryKey == itemKey) { pendingHistoryKey = null; pendingHistoryJob = null }
@@ -97,6 +99,7 @@ class MusicPlaybackService : MediaSessionService() {
                 pendingHistoryJob = null
                 pendingHistoryKey = null
                 lastRecordedItemKey = null
+                pendingListenedMs = 0L
                 schedulePlaybackHistory(player)
             }
         })
