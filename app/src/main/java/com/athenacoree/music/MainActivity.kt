@@ -259,6 +259,15 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     Spacer(Modifier.weight(1f))
                     if (visualMode == "karaoke") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
                 }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { MusicPlaybackController.toggleShuffle(context) }) {
+                        Text(if (state.shuffleEnabled) "Aleatorio: sí" else "Aleatorio", color = if (state.shuffleEnabled) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
+                    }
+                    TextButton(onClick = { MusicPlaybackController.cycleRepeat(context) }) {
+                        val repeatLabel = when (state.repeatMode) { 1 -> "Repetir: una"; 2 -> "Repetir: todo"; else -> "Repetir: no" }
+                        Text(repeatLabel, color = if (state.repeatMode != 0) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
+                    }
+                }
                 when (visualMode) {
                     "karaoke" -> Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC para ver la letra" else "La letra comenzará con la canción", color = Color(0xFFB7F36B), fontSize = 17.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
