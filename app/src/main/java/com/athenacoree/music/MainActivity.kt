@@ -440,6 +440,9 @@ private fun LibraryScreen(
     val filters = listOf("Todo", "Favoritos")
     val tracks by repository.tracks.collectAsState(initial = emptyList())
     val favorites by repository.favorites.collectAsState(initial = emptyList())
+    val playbackCount by repository.playbackCount.collectAsState(initial = 0)
+    val mostPlayed by repository.mostPlayed.collectAsState(initial = emptyList())
+    val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var scanStatus by rememberSaveable { mutableStateOf("Primero se importan 5 archivos; luego puedes continuar por tandas.") }
@@ -507,6 +510,40 @@ private fun LibraryScreen(
         item {
             Text("Biblioteca", color = colors.text, fontSize = 27.sp, fontWeight = FontWeight.Bold)
             Text("Tu colección local, disponible sin conexión.", color = colors.muted, fontSize = 13.sp)
+        }
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                    .background(colors.surface).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Tu actividad musical", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Historial guardado en este dispositivo", color = colors.muted, fontSize = 11.sp)
+                    }
+                    Text("$playbackCount", color = colors.accent, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                }
+                Text("REPRODUCCIONES", color = colors.muted, fontSize = 9.sp, letterSpacing = 1.2.sp)
+                if (mostPlayed.isNotEmpty()) {
+                    Text("Más escuchadas", color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    mostPlayed.take(3).forEachIndexed { index, stat ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${index + 1}.", color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stat.title, color = colors.text, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(stat.artistName.ifBlank { "Artista desconocido" }, color = colors.muted, fontSize = 10.sp)
+                            }
+                            Text("${stat.playCount}x", color = colors.muted, fontSize = 11.sp)
+                        }
+                    }
+                } else if (recentPlayback.isEmpty()) {
+                    Text("Cuando reproduzcas canciones de tu biblioteca, aparecerán aquí tus estadísticas.", color = colors.muted, fontSize = 12.sp, lineHeight = 17.sp)
+                } else {
+                    Text("Última reproducción: ${recentPlayback.first().title}", color = colors.text, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
         }
         item {
             OutlinedTextField(
@@ -627,6 +664,9 @@ private fun LibraryScreen(
                                     val selectedIndex = audioQueue.indexOfFirst { it.first == Uri.parse(media) }.coerceAtLeast(0)
                                     MusicPlaybackController.playQueue(context, audioQueue, selectedIndex) { result ->
                                         result.onSuccess {
+                                            scope.launch {
+                                                runCatching { repository.recordPlayback(track) }
+                                            }
                                             showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
                                         }.onFailure {
                                             showFeedback("No se pudo iniciar la reproducción. Comprueba el archivo e inténtalo de nuevo.", MusicFeedbackType.ERROR)
