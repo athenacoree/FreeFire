@@ -227,7 +227,7 @@ private fun MusicApp() {
                         MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode -> scope.launch { MusicPreferences.setPerformanceMode(context, mode) } }, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
+                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode -> scope.launch { MusicPreferences.setPerformanceMode(context, mode) } }, sleepTimerMinutes = sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                     }
                 }
             }
