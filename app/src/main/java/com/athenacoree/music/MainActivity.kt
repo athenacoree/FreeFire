@@ -370,14 +370,41 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                             Text(state.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(state.artist, color = Color(0xFF9CA3AF), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        TextButton(onClick = { expandedLyrics = false }) { Text("Cerrar", color = Color(0xFFB7F36B)) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { showFullLyrics = !showFullLyrics }) {
+                                Text(if (showFullLyrics) "Karaoke" else "Letra completa", color = Color(0xFFB7F36B), fontSize = 11.sp)
+                            }
+                            TextButton(onClick = { expandedLyrics = false }) { Text("Cerrar", color = Color(0xFFB7F36B)) }
+                        }
                     }
-                    Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(previousLine?.text.orEmpty(), color = Color(0xFF646D7B), fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
-                        Spacer(Modifier.height(30.dp))
-                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa tu archivo .LRC" else "♪", color = Color(0xFFB7F36B), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 34.sp)
-                        Spacer(Modifier.height(30.dp))
-                        Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 17.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
+                    if (showFullLyrics) {
+                        if (currentLyrics.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                                Text("Importa un archivo .LRC para mostrar la letra completa.", color = Color(0xFF9CA3AF), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            }
+                        } else {
+                            LazyColumn(state = lyricsListState, modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
+                                itemsIndexed(currentLyrics) { index, line ->
+                                    Text(
+                                        line.text,
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) Color(0xFF293421) else Color.Transparent).clickable { MusicPlaybackController.seekTo(line.timeMs) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                        color = if (index == activeIndex) Color(0xFFB7F36B) else Color(0xFF8992A0),
+                                        fontSize = if (index == activeIndex) 19.sp else 15.sp,
+                                        fontWeight = if (index == activeIndex) FontWeight.Bold else FontWeight.Normal,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        lineHeight = 24.sp
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(previousLine?.text.orEmpty(), color = Color(0xFF646D7B), fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
+                            Spacer(Modifier.height(30.dp))
+                            Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa tu archivo .LRC" else "♪", color = Color(0xFFB7F36B), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 34.sp)
+                            Spacer(Modifier.height(30.dp))
+                            Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 17.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
+                        }
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
