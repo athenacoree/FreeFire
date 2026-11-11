@@ -106,7 +106,9 @@ internal data class MusicPlaybackUiState(
     val mediaId: String,
     val isPlaying: Boolean,
     val hasPrevious: Boolean,
-    val hasNext: Boolean
+    val hasNext: Boolean,
+    val shuffleEnabled: Boolean,
+    val repeatMode: Int
 )
 
 internal object MusicPlaybackController {
@@ -121,7 +123,9 @@ internal object MusicPlaybackController {
             mediaId = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId },
             isPlaying = player.isPlaying,
             hasPrevious = player.hasPreviousMediaItem(),
-            hasNext = player.hasNextMediaItem()
+            hasNext = player.hasNextMediaItem(),
+            shuffleEnabled = player.shuffleModeEnabled,
+            repeatMode = player.repeatMode
         )
     }
     private val playerListener = object : Player.Listener {
@@ -238,6 +242,14 @@ internal object MusicPlaybackController {
     fun resume(context: Context) = connect(context) { it.play() }
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
+    fun toggleShuffle(context: Context) = connect(context) { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+    fun cycleRepeat(context: Context) = connect(context) { player ->
+        player.repeatMode = when (player.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+    }
 
     fun release() {
         synchronized(lock) {
