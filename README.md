@@ -18,6 +18,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Control de velocidad de reproducción entre 0,75× y 2× desde el mini reproductor.
 - Mini reproductor flotante compacto que se puede contraer a una barra y volver a expandir.
 - La sesión multimedia transmite título, artista, álbum y portada a los controles multimedia compatibles del sistema.
+- El mini reproductor muestra la portada de la canción actual y conserva título y artista en la sesión multimedia.
 - Reproductor con modo de letra independiente y vista de letra completa con desplazamiento automático sincronizado; tocar una línea permite saltar a ese momento de la canción.
 - Las letras importadas se guardan localmente con límite de tamaño para evitar ocupar espacio excesivo.
 - Uso como invitado; la cuenta es opcional.
