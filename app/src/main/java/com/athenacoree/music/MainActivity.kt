@@ -754,9 +754,6 @@ private fun LibraryScreen(
                                     val selectedIndex = audioQueue.indexOfFirst { it.first == Uri.parse(media) }.coerceAtLeast(0)
                                     MusicPlaybackController.playQueue(context, audioQueue, selectedIndex) { result ->
                                         result.onSuccess {
-                                            scope.launch {
-                                                runCatching { repository.recordPlayback(track) }
-                                            }
                                             showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
                                         }.onFailure {
                                             showFeedback("No se pudo iniciar la reproducción. Comprueba el archivo e inténtalo de nuevo.", MusicFeedbackType.ERROR)
@@ -1291,7 +1288,6 @@ private fun playSmartPlaylist(
     showFeedback("Preparando tu lista inteligente…", MusicFeedbackType.LOADING)
     MusicPlaybackController.playQueue(context, queue, start) { result ->
         result.onSuccess {
-            scope.launch { runCatching { repository.recordPlayback(playable[start]) } }
             showFeedback("Reproduciendo ${playable[start].title}.", MusicFeedbackType.SUCCESS)
         }.onFailure {
             showFeedback("No se pudo reproducir esta lista.", MusicFeedbackType.ERROR)
