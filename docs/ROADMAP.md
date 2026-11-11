@@ -9,7 +9,7 @@
 - [x] Add remote catalog models and version-aware local Room mapping.
 - [x] Implement version-aware catalog synchronization for artists, albums, tracks and videos.
 - [x] Integrate Media3 native playback for user-selected local audio files.
-- [x] Add Coil image loading with a 48 MB disk cache and data-saver image suppression.
+- [x] Add Coil image loading with a persistent 128 MB disk cache and data-saver image suppression.
 - [x] Add optional Supabase email/password authentication with guest mode preserved.
 - [x] Load and refresh Supabase Auth sessions on Android.
 - [x] Create Music-only account profiles without touching Interaccion profiles.
@@ -17,6 +17,12 @@
 - [x] Add shared playlist creation, owner invitations, editor roles and track insertion with RLS.
 - [x] Add Android share intents and handoff to the official YouTube app/player.
 - [x] Persist data-saver preference and suppress catalog artwork requests while enabled.
+- [x] Keep tab scroll and saveable UI state when switching sections.
+- [x] Debounce library search and run filtering in Room instead of filtering the full collection on every recomposition.
+- [x] Query recently played tracks directly from Room instead of loading the entire library to resolve five history entries.
+- [x] Batch catalog cache writes by page while preserving per-record version checks.
+- [x] Increase device media import batches to 100 records and batch Room inserts.
+- [x] Reduce idle playback-position polling and use binary search for active karaoke lyric lines.
 - [ ] Test offline behavior, local file playback and remote-service failure behavior.
 - [ ] Confirm the Android compile workflow passes after the Kotlin/AndroidX compatibility fixes.
 - [ ] Test registration, email confirmation, sign-in, session restoration and sign-out on a real Android device.
