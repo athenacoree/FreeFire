@@ -10,7 +10,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Room para la biblioteca local y DataStore para preferencias.
 - Media3 para reproducción nativa de archivos locales/autorizados.
 - Supabase Kotlin 3.9.0 para Auth y catálogo compartido.
-- Coil 3.6.3 para portadas, con caché local limitada.
+- Coil 3.6.3 para portadas, con carga bajo demanda en listas perezosas, placeholders skeleton y caché local persistente de hasta 128 MB.
 
 ## Decisiones del producto
 - Tema claro y oscuro, seleccionables desde la aplicación.
