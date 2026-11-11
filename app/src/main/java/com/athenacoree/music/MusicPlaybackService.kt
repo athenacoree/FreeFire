@@ -15,6 +15,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -24,6 +25,34 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
+    private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var lastRecordedItemKey: String? = null
+
+    private fun recordCurrentPlayback(player: Player) {
+        if (!player.isPlaying) return
+        val item = player.currentMediaItem ?: return
+        val uri = item.localConfiguration?.uri?.toString().orEmpty()
+        if (uri.isBlank()) return
+        val itemKey = "${player.currentMediaItemIndex}:$uri"
+        if (lastRecordedItemKey == itemKey) return
+        lastRecordedItemKey = itemKey
+        val title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Audio" }
+        val artist = item.mediaMetadata.artist?.toString().orEmpty()
+        historyScope.launch {
+            runCatching {
+                val dao = MusicDatabase.getInstance(applicationContext).libraryDao()
+                val localTrack = dao.findTrackByMediaUri(uri)
+                dao.recordPlayback(
+                    PlaybackHistoryEntity(
+                        id = java.util.UUID.randomUUID().toString(),
+                        trackId = localTrack?.id ?: uri,
+                        title = localTrack?.title ?: title,
+                        artistName = localTrack?.artistName ?: artist
+                    )
+                )
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -40,10 +69,17 @@ class MusicPlaybackService : MediaSessionService() {
         }
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) MusicEqualizerController.attach(player.audioSessionId)
+                if (isPlaying) {
+                    MusicEqualizerController.attach(player.audioSessionId)
+                    recordCurrentPlayback(player)
+                }
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) MusicEqualizerController.attach(player.audioSessionId)
+            }
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                lastRecordedItemKey = null
+                recordCurrentPlayback(player)
             }
         })
         MusicEqualizerController.attach(player.audioSessionId)
@@ -59,6 +95,7 @@ class MusicPlaybackService : MediaSessionService() {
         }
         mediaSession = null
         MusicEqualizerController.release()
+        historyScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         MusicPlaybackController.release()
         super.onDestroy()
     }
