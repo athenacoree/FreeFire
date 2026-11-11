@@ -42,6 +42,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -246,6 +248,8 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     var lyricsOffsetMs by rememberSaveable(state.mediaId) { mutableStateOf(0L) }
     var showQueue by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    var showFullLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    val lyricsListState = rememberLazyListState()
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
     LaunchedEffect(state.mediaId) {
         val saved = MusicLyricsStorage.load(context, state.mediaId)
@@ -285,6 +289,9 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     val previousLine = currentLyrics.getOrNull(activeIndex - 1)
     val activeLine = currentLyrics.getOrNull(activeIndex)
     val nextLine = currentLyrics.getOrNull(activeIndex + 1)
+    LaunchedEffect(activeIndex, showFullLyrics) {
+        if (showFullLyrics && activeIndex >= 0 && activeIndex < currentLyrics.size) lyricsListState.animateScrollToItem(activeIndex)
+    }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
         Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
