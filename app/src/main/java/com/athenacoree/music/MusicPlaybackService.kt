@@ -275,6 +275,8 @@ internal object MusicPlaybackController {
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
     fun playQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) { player.seekToDefaultPosition(index); player.play() } }
+    fun removeQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) player.removeMediaItem(index) }
+    fun clearQueue(context: Context) = connect(context) { it.clearMediaItems() }
     fun toggleShuffle(context: Context) = connect(context) { it.shuffleModeEnabled = !it.shuffleModeEnabled }
     fun cycleRepeat(context: Context) = connect(context) { player ->
         player.repeatMode = when (player.repeatMode) {
