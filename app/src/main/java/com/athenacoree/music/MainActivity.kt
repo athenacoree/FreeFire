@@ -221,6 +221,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
     var isSeeking by remember(state.mediaId) { mutableStateOf(false) }
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    var showQueue by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
     LaunchedEffect(state.mediaId) {
         val saved = MusicLyricsStorage.load(context, state.mediaId)
@@ -294,6 +295,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         val repeatLabel = when (state.repeatMode) { 1 -> "Repetir: una"; 2 -> "Repetir: todo"; else -> "Repetir: no" }
                         Text(repeatLabel, color = if (state.repeatMode != 0) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
                     }
+                    TextButton(onClick = { showQueue = true }) { Text("Cola · ${state.queue.size}", color = Color(0xFFB6BAC4), fontSize = 10.sp) }
                 }
                 when (visualMode) {
                     "karaoke" -> Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -331,6 +333,39 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = Color(0xFFB7F36B), modifier = Modifier.size(42.dp)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(30.dp)) }
                     }
+                }
+            }
+        }
+    }
+    if (showQueue) {
+        Dialog(onDismissRequest = { showQueue = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                color = Color(0xFF20232B),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Cola de reproducción", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("${state.queue.size} canciones", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+                    Column(modifier = Modifier.fillMaxWidth().height(340.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        state.queue.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                    .background(if (item.isCurrent) Color(0xFF343D2B) else Color(0xFF292D36))
+                                    .clickable { MusicPlaybackController.playQueueItem(context, item.index); showQueue = false }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(if (item.isCurrent) "♫" else "${item.index + 1}", color = if (item.isCurrent) Color(0xFFB7F36B) else Color(0xFF9CA3AF), fontSize = 12.sp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.title, color = if (item.isCurrent) Color(0xFFB7F36B) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(item.artist.ifBlank { "Audio" }, color = Color(0xFF9CA3AF), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = { showQueue = false }, modifier = Modifier.align(Alignment.End)) { Text("Cerrar", color = Color(0xFFB7F36B)) }
                 }
             }
         }
