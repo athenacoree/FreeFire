@@ -4,7 +4,7 @@ package com.athenacoree.music
 internal data class MusicLyricsLine(val timeMs: Long, val text: String)
 
 internal object MusicLyricsParser {
-    private val timestamp = Regex("""\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?]""")
+    private val timestamp = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]""")
 
     fun parse(source: String): List<MusicLyricsLine> {
         val result = mutableListOf<MusicLyricsLine>()
