@@ -248,6 +248,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     var lyricsOffsetMs by rememberSaveable(state.mediaId) { mutableStateOf(0L) }
     var showQueue by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    var compactPlayer by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     var showFullLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val lyricsListState = rememberLazyListState()
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
@@ -293,6 +294,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         if (showFullLyrics && activeIndex >= 0 && activeIndex < currentLyrics.size) lyricsListState.animateScrollToItem(activeIndex)
     }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        if (!compactPlayer) {
         Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -304,6 +306,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White) }
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
+                        TextButton(onClick = { compactPlayer = true }) { Text("−", color = Color(0xFFB6BAC4), fontSize = 18.sp) }
                     }
                 }
                 if (durationMs > 0L) {
@@ -364,6 +367,20 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         Text("LETRA · toca para ampliar", color = Color(0xFF9CA3AF), fontSize = 9.sp, letterSpacing = 1.sp)
                     }
                     "minimal" -> Text("♫  " + state.artist.ifBlank { state.title }, color = Color(0xFFB7F36B), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        } else {
+            Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(22.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 86.dp)) {
+                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(state.title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) {
+                        Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = Color(0xFFB7F36B))
+                    }
+                    TextButton(onClick = { compactPlayer = false }) { Text("Expandir", color = Color(0xFFB7F36B), fontSize = 10.sp) }
                 }
             }
         }
