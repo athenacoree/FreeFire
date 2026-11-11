@@ -1291,6 +1291,41 @@ private fun ProfileScreen(
             }
         }
 
+        var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(colors.surface).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Temporizador de apagado", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(
+                if (sleepTimerMinutes > 0) "La música se pausará en $sleepTimerMinutes minutos."
+                else "Programa una pausa automática mientras escuchas música.",
+                color = colors.muted, fontSize = 11.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf(15, 30, 45, 60).forEach { minutes ->
+                    TextButton(onClick = {
+                        sleepTimerMinutes = minutes
+                        MusicPlaybackController.setSleepTimer(context, minutes) { result ->
+                            sleepTimerMinutes = 0
+                            if (result.isSuccess) showFeedback("Temporizador finalizado: reproducción pausada.", MusicFeedbackType.SUCCESS)
+                            else showFeedback("Terminó el temporizador, pero no se pudo pausar la reproducción.", MusicFeedbackType.ERROR)
+                        }
+                        showFeedback("La música se pausará en $minutes minutos.", MusicFeedbackType.INFO)
+                    }) {
+                        Text("$minutes min", color = if (sleepTimerMinutes == minutes) colors.accent else colors.text, fontSize = 11.sp)
+                    }
+                }
+            }
+            if (sleepTimerMinutes > 0) {
+                TextButton(onClick = {
+                    MusicPlaybackController.cancelSleepTimer()
+                    sleepTimerMinutes = 0
+                    showFeedback("Temporizador cancelado.", MusicFeedbackType.INFO)
+                }) { Text("Cancelar temporizador", color = colors.accent) }
+            }
+        }
+
         Text("Preferencias", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Row(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
