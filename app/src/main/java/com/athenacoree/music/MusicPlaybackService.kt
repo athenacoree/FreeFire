@@ -231,7 +231,7 @@ internal object MusicPlaybackController {
     fun play(context: Context, item: MusicPlaybackItem, onComplete: (Result<Unit>) -> Unit = {}) {
         connect(context, { player ->
             val metadata = MediaMetadata.Builder().setTitle(item.title).setArtist(item.artist)
-                .setAlbumTitle(item.albumTitle).setArtworkUri(item.artworkUri?.let(Uri::parse)).build()
+                .setAlbumTitle(item.albumTitle).setArtworkUri(item.artworkUri?.let { Uri.parse(it) }).build()
             player.setMediaItem(MediaItem.Builder().setUri(item.uri).setMediaMetadata(metadata).build())
             player.prepare()
             player.play()
