@@ -18,8 +18,8 @@ class MusicApplication : Application(), SingletonImageLoader.Factory {
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(context.cacheDir.resolve("music-artwork").absolutePath.toPath())
-                    .maxSizeBytes(48L * 1024L * 1024L)
+                    .directory(context.filesDir.resolve("music-artwork-cache").absolutePath.toPath())
+                    .maxSizeBytes(128L * 1024L * 1024L)
                     .build()
             }
             .build()
