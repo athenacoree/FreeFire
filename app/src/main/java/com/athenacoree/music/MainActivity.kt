@@ -1578,6 +1578,16 @@ private fun ProfileScreen(
                 Switch(checked = equalizer.enabled, onCheckedChange = { MusicEqualizerController.setEnabled(it) }, enabled = equalizer.available)
             }
             if (equalizer.available) {
+                if (equalizer.presets.isNotEmpty()) {
+                    Text("Preajustes", color = colors.muted, fontSize = 10.sp)
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        equalizer.presets.forEachIndexed { index, preset ->
+                            TextButton(onClick = { MusicEqualizerController.applyPreset(index.toShort()) }) {
+                                Text(preset, color = colors.accent, fontSize = 10.sp, maxLines = 1)
+                            }
+                        }
+                    }
+                }
                 equalizer.bands.forEachIndexed { index, level ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
