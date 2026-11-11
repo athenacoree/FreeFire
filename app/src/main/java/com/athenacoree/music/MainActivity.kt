@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -1068,26 +1069,29 @@ private fun PlaylistManagerScreen(
                     .distinctBy { it.id }
                 val topTracks = mostPlayed.mapNotNull { stat -> localTracks.firstOrNull { it.id == stat.trackId } }
                     .distinctBy { it.id }
+                val favoritePlayable = favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+                val recentPlayable = recentTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+                val topPlayable = topTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
                 SmartPlaylistCard(
                     title = "Tus favoritos",
                     subtitle = "Todas las canciones que marcaste con ♥",
-                    tracks = favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    tracks = favoritePlayable,
                     colors = colors,
-                    onPlay = { selected -> playSmartPlaylist(context, favoriteTracks, selected, repository, scope, showFeedback) }
+                    onPlay = { selected -> playSmartPlaylist(context, favoritePlayable, selected, repository, scope, showFeedback) }
                 )
                 SmartPlaylistCard(
                     title = "Escuchadas recientemente",
                     subtitle = "Lo último que has reproducido",
-                    tracks = recentTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    tracks = recentPlayable,
                     colors = colors,
-                    onPlay = { selected -> playSmartPlaylist(context, recentTracks, selected, repository, scope, showFeedback) }
+                    onPlay = { selected -> playSmartPlaylist(context, recentPlayable, selected, repository, scope, showFeedback) }
                 )
                 SmartPlaylistCard(
                     title = "Tus más escuchadas",
                     subtitle = "Ordenadas por número de reproducciones",
-                    tracks = topTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    tracks = topPlayable,
                     colors = colors,
-                    onPlay = { selected -> playSmartPlaylist(context, topTracks, selected, repository, scope, showFeedback) }
+                    onPlay = { selected -> playSmartPlaylist(context, topPlayable, selected, repository, scope, showFeedback) }
                 )
             }
         }
