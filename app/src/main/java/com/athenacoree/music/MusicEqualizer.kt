@@ -9,6 +9,7 @@ internal data class MusicEqualizerState(
     val enabled: Boolean = false,
     val bands: List<Int> = emptyList(),
     val frequenciesHz: List<Int> = emptyList(),
+    val presets: List<String> = emptyList(),
     val minLevel: Int = -1500,
     val maxLevel: Int = 1500
 )
@@ -37,6 +38,7 @@ internal object MusicEqualizerController {
                 enabled = false,
                 bands = bands,
                 frequenciesHz = frequencies,
+                presets = (0 until created.numberOfPresets.toInt()).map { created.getPresetName(it.toShort()).toString() },
                 minLevel = range[0].toInt(),
                 maxLevel = range[1].toInt()
             )
