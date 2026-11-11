@@ -956,6 +956,10 @@ private fun PlaylistManagerScreen(
 ) {
     val localLists by repository.playlists.collectAsState(initial = emptyList())
     val localTracks by repository.tracks.collectAsState(initial = emptyList())
+    val favoriteTracks by repository.favorites.collectAsState(initial = emptyList())
+    val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
+    val mostPlayed by repository.mostPlayed.collectAsState(initial = emptyList())
+    val context = LocalContext.current
     var cloudTrackId by rememberSaveable { mutableStateOf("") }
     var targetPlaylistId by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
@@ -1003,6 +1007,37 @@ private fun PlaylistManagerScreen(
             }
         }
         item { Text(message, color = colors.muted, fontSize = 11.sp) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Listas inteligentes", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Se actualizan automáticamente con tu actividad y tus favoritos.", color = colors.muted, fontSize = 11.sp)
+                val recentTracks = recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
+                    .distinctBy { it.id }
+                val topTracks = mostPlayed.mapNotNull { stat -> localTracks.firstOrNull { it.id == stat.trackId } }
+                    .distinctBy { it.id }
+                SmartPlaylistCard(
+                    title = "Tus favoritos",
+                    subtitle = "Todas las canciones que marcaste con ♥",
+                    tracks = favoriteTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    colors = colors,
+                    onPlay = { selected -> playSmartPlaylist(context, favoriteTracks, selected, repository, scope, showFeedback) }
+                )
+                SmartPlaylistCard(
+                    title = "Escuchadas recientemente",
+                    subtitle = "Lo último que has reproducido",
+                    tracks = recentTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    colors = colors,
+                    onPlay = { selected -> playSmartPlaylist(context, recentTracks, selected, repository, scope, showFeedback) }
+                )
+                SmartPlaylistCard(
+                    title = "Tus más escuchadas",
+                    subtitle = "Ordenadas por número de reproducciones",
+                    tracks = topTracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" },
+                    colors = colors,
+                    onPlay = { selected -> playSmartPlaylist(context, topTracks, selected, repository, scope, showFeedback) }
+                )
+            }
+        }
         item { Text("En este dispositivo", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp) }
         if (localLists.isNotEmpty() && localTracks.isNotEmpty()) {
             item { Text("Añadir canciones a «${localLists.first().name}»", color = colors.muted, fontSize = 12.sp) }
@@ -1095,6 +1130,77 @@ private fun PlaylistManagerScreen(
                     Text("Invitar como editor")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SmartPlaylistCard(
+    title: String,
+    subtitle: String,
+    tracks: List<LocalTrackEntity>,
+    colors: MusicColors,
+    onPlay: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp))
+            .background(colors.surface).padding(13.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(subtitle, color = colors.muted, fontSize = 10.sp)
+            }
+            Text("${tracks.size}", color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        }
+        if (tracks.isEmpty()) {
+            Text("Aún no hay canciones para esta lista.", color = colors.muted, fontSize = 11.sp)
+        } else {
+            tracks.take(3).forEachIndexed { index, track ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                        .clickable { onPlay(index) }.padding(vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, tint = colors.accent, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(track.title, color = colors.text, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(track.artistName.ifBlank { "Audio local" }, color = colors.muted, fontSize = 9.sp)
+                    }
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Reproducir", tint = colors.accent, modifier = Modifier.size(18.dp))
+                }
+            }
+            TextButton(onClick = { onPlay(0) }) {
+                Text("Reproducir lista", color = colors.accent, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+private fun playSmartPlaylist(
+    context: android.content.Context,
+    tracks: List<LocalTrackEntity>,
+    selected: Int,
+    repository: MusicLibraryRepository,
+    scope: kotlinx.coroutines.CoroutineScope,
+    showFeedback: (String, MusicFeedbackType) -> Unit
+) {
+    val playable = tracks.filter { !it.mediaUri.isNullOrBlank() && it.source != "device-video" }
+    if (playable.isEmpty()) {
+        showFeedback("Esta lista todavía no tiene canciones reproducibles.", MusicFeedbackType.INFO)
+        return
+    }
+    val queue = playable.map { Uri.parse(it.mediaUri) to it.title }
+    val start = selected.coerceIn(queue.indices)
+    showFeedback("Preparando tu lista inteligente…", MusicFeedbackType.LOADING)
+    MusicPlaybackController.playQueue(context, queue, start) { result ->
+        result.onSuccess {
+            scope.launch { runCatching { repository.recordPlayback(playable[start]) } }
+            showFeedback("Reproduciendo ${playable[start].title}.", MusicFeedbackType.SUCCESS)
+        }.onFailure {
+            showFeedback("No se pudo reproducir esta lista.", MusicFeedbackType.ERROR)
         }
     }
 }
