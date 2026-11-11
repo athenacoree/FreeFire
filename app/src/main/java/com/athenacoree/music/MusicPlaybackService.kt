@@ -66,17 +66,18 @@ internal object MusicPlaybackController {
     @Volatile private var controller: MediaController? = null
     private val _playbackState = MutableStateFlow<MusicPlaybackUiState?>(null)
     val playbackState: StateFlow<MusicPlaybackUiState?> = _playbackState
+    private fun refreshPlaybackState(player: Player) {
+        val item = player.currentMediaItem
+        _playbackState.value = if (item == null) null else MusicPlaybackUiState(
+            title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { item.mediaId.ifBlank { "Reproduciendo" } },
+            artist = item.mediaMetadata.artist?.toString().orEmpty(),
+            isPlaying = player.isPlaying,
+            hasPrevious = player.hasPreviousMediaItem(),
+            hasNext = player.hasNextMediaItem()
+        )
+    }
     private val playerListener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) {
-            val item = player.currentMediaItem
-            _playbackState.value = if (item == null) null else MusicPlaybackUiState(
-                title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { item.mediaId.ifBlank { "Reproduciendo" } },
-                artist = item.mediaMetadata.artist?.toString().orEmpty(),
-                isPlaying = player.isPlaying,
-                hasPrevious = player.hasPreviousMediaItem(),
-                hasNext = player.hasNextMediaItem()
-            )
-        }
+        override fun onEvents(player: Player, events: Player.Events) = refreshPlaybackState(player)
     }
     private val lock = Any()
     private var connecting = false
@@ -116,7 +117,7 @@ internal object MusicPlaybackController {
                 connection.getOrNull()?.let { ready ->
                     controller = ready
                     ready.addListener(playerListener)
-                    playerListener.onEvents(ready, Player.Events(emptySet()))
+                    refreshPlaybackState(ready)
                 }
                 val actions = pendingActions.toList()
                 pendingActions.clear()
