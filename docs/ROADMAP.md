@@ -23,6 +23,7 @@
 - [x] Batch catalog cache writes by page while preserving per-record version checks.
 - [x] Increase device media import batches to 100 records and batch Room inserts.
 - [x] Reduce idle playback-position polling and use binary search for active karaoke lyric lines.
+- [x] Memoize smart-playlist projections so ordinary UI recompositions do not repeatedly scan the local library.
 - [ ] Test offline behavior, local file playback and remote-service failure behavior.
 - [ ] Confirm the Android compile workflow passes after the Kotlin/AndroidX compatibility fixes.
 - [ ] Test registration, email confirmation, sign-in, session restoration and sign-out on a real Android device.
