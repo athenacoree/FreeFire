@@ -135,6 +135,7 @@ private fun MusicApp() {
         }
     }
     var selectedTab by rememberSaveable { mutableStateOf(MusicTab.Home.name) }
+    var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
     val tab = MusicTab.valueOf(selectedTab)
 
     val colors = if (darkMode) {
@@ -192,7 +193,7 @@ private fun MusicApp() {
                     MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                    MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, onThemeChange = changeTheme, showFeedback = showFeedback)
+                    MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                 }
             }
             MusicFeedbackBanner(feedback)
@@ -1063,6 +1064,8 @@ private fun ProfileScreen(
     colors: MusicColors,
     padding: PaddingValues,
     darkMode: Boolean,
+    sleepTimerMinutes: Int,
+    onSleepTimerChange: (Int) -> Unit,
     onThemeChange: () -> Unit,
     showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
@@ -1291,7 +1294,6 @@ private fun ProfileScreen(
             }
         }
 
-        var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
         Column(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(colors.surface).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -1305,9 +1307,9 @@ private fun ProfileScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 listOf(15, 30, 45, 60).forEach { minutes ->
                     TextButton(onClick = {
-                        sleepTimerMinutes = minutes
+                        onSleepTimerChange(minutes)
                         MusicPlaybackController.setSleepTimer(context, minutes) { result ->
-                            sleepTimerMinutes = 0
+                            onSleepTimerChange(0)
                             if (result.isSuccess) showFeedback("Temporizador finalizado: reproducción pausada.", MusicFeedbackType.SUCCESS)
                             else showFeedback("Terminó el temporizador, pero no se pudo pausar la reproducción.", MusicFeedbackType.ERROR)
                         }
@@ -1320,7 +1322,7 @@ private fun ProfileScreen(
             if (sleepTimerMinutes > 0) {
                 TextButton(onClick = {
                     MusicPlaybackController.cancelSleepTimer()
-                    sleepTimerMinutes = 0
+                    onSleepTimerChange(0)
                     showFeedback("Temporizador cancelado.", MusicFeedbackType.INFO)
                 }) { Text("Cancelar temporizador", color = colors.accent) }
             }
