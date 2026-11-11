@@ -322,7 +322,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    listOf("normal" to "Normal", "karaoke" to "Karaoke", "minimal" to "Minimal").forEach { (mode, label) ->
+                    listOf("normal" to "Normal", "karaoke" to "Karaoke", "lyrics" to "Letra", "minimal" to "Minimal").forEach { (mode, label) ->
                         val selected = visualMode == mode
                         Surface(color = if (selected) Color(0xFFB7F36B) else Color(0xFF343944), shape = RoundedCornerShape(30.dp), modifier = Modifier.clickable { onVisualModeChange(mode) }) {
                             Text(label, color = if (selected) Color(0xFF17200D) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
@@ -355,18 +355,26 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         Text("Toca para abrir karaoke a pantalla completa", color = Color(0xFF77808E), fontSize = 9.sp)
                         if (currentLyrics.isEmpty()) Text("Usa letras LRC que tengas guardadas en tu dispositivo.", color = Color(0xFF9CA3AF), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
+                    "lyrics" -> Column(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 17.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC" else "♪", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 25.sp)
+                        Text("LETRA · toca para ampliar", color = Color(0xFF9CA3AF), fontSize = 9.sp, letterSpacing = 1.sp)
+                    }
                     "minimal" -> Text("♫  " + state.artist.ifBlank { state.title }, color = Color(0xFFB7F36B), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
     }
-    if (expandedLyrics && visualMode == "karaoke") {
+    if (expandedLyrics && visualMode in setOf("karaoke", "lyrics")) {
         Dialog(onDismissRequest = { expandedLyrics = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.fillMaxSize().padding(0.dp), color = Color(0xFF10131A), shape = RoundedCornerShape(0.dp)) {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 28.dp), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("MODO KARAOKE", color = Color(0xFFB7F36B), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            Text(if (visualMode == "lyrics") "LETRA COMPLETA" else "MODO KARAOKE", color = Color(0xFFB7F36B), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                             Text(state.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(state.artist, color = Color(0xFF9CA3AF), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
