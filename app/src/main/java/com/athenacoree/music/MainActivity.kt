@@ -619,6 +619,7 @@ private fun LibraryScreen(
                                     showFeedback("No se pudo abrir este vídeo en el dispositivo.", MusicFeedbackType.ERROR)
                                 }
                             } else {
+                                showFeedback("Preparando la reproducción…", MusicFeedbackType.LOADING)
                                 runCatching {
                                     val audioQueue = visibleTracks.filter { it.mediaUri != null && it.source != "device-video" }
                                         .map { Uri.parse(it.mediaUri) to it.title }
