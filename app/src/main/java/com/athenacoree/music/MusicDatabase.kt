@@ -97,7 +97,16 @@ interface MusicLibraryDao {
     suspend fun deleteTrack(trackId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun recordPlayback(item: PlaybackHistoryEntity)
+    suspend fun insertPlayback(item: PlaybackHistoryEntity)
+
+    @Query("DELETE FROM playback_history WHERE id NOT IN (SELECT id FROM playback_history ORDER BY playedAt DESC LIMIT 5000)")
+    suspend fun trimPlaybackHistory()
+
+    @Transaction
+    suspend fun recordPlayback(item: PlaybackHistoryEntity) {
+        insertPlayback(item)
+        trimPlaybackHistory()
+    }
 
     @Query("SELECT COUNT(*) FROM playback_history")
     fun observePlaybackCount(): Flow<Int>
