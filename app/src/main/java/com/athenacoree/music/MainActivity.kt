@@ -140,6 +140,8 @@ private fun MusicApp() {
     }
     var selectedTab by rememberSaveable { mutableStateOf(MusicTab.Home.name) }
     var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
+    var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
+    var playerVisualMode by rememberSaveable { mutableStateOf("normal") }
     val tab = MusicTab.valueOf(selectedTab)
 
     val colors = if (darkMode) {
@@ -200,61 +202,64 @@ private fun MusicApp() {
                     MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                 }
             }
-            MusicMiniPlayer(playbackState, context)
+            MusicMiniPlayer(playbackState, context, lyricsLines, onLyricsChange = { lyricsLines = it }, visualMode = playerVisualMode, onVisualModeChange = { playerVisualMode = it })
             MusicFeedbackBanner(feedback)
         }
     }
 }
 
 @Composable
-private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context) {
+private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, onLyricsChange: (List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
+    var positionMs by remember(state.title) { mutableStateOf(0L) }
+    val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("No se pudo leer el archivo.") }
+                .onSuccess { raw -> onLyricsChange(MusicLyricsParser.parse(raw)) }
+        }
+    }
+    LaunchedEffect(state.title, state.isPlaying) {
+        while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
+    }
+    val activeIndex = lyrics.indexOfLast { it.timeMs <= positionMs }
+    val activeLine = lyrics.getOrNull(activeIndex)
+    val nextLine = lyrics.getOrNull(activeIndex + 1)
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        Surface(
-            color = Color(0xFF20232B),
-            shape = RoundedCornerShape(18.dp),
-            shadowElevation = 12.dp,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
-                        .background(Color(0xFF39432F)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B))
+        Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(state.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White) }
+                        IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
+                        IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
+                    }
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(state.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 10.sp,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    listOf("normal" to "Normal", "karaoke" to "Karaoke", "minimal" to "Minimal").forEach { (mode, label) ->
+                        val selected = visualMode == mode
+                        Surface(color = if (selected) Color(0xFFB7F36B) else Color(0xFF343944), shape = RoundedCornerShape(30.dp), modifier = Modifier.clickable { onVisualModeChange(mode) }) {
+                            Text(label, color = if (selected) Color(0xFF17200D) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (visualMode == "karaoke") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
                 }
-                IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White)
-                }
-                IconButton(onClick = {
-                    if (state.isPlaying) MusicPlaybackController.pause(context)
-                    else MusicPlaybackController.resume(context)
-                }) {
-                    Icon(
-                        if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pausar" else "Continuar",
-                        tint = Color(0xFFB7F36B)
-                    )
-                }
-                IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White)
+                when (visualMode) {
+                    "karaoke" -> Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).padding(horizontal = 14.dp, vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text(activeLine?.text ?: if (lyrics.isEmpty()) "Importa un archivo .LRC para ver la letra" else "La letra comenzará con la canción", color = Color(0xFFB7F36B), fontSize = 17.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
+                        Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (lyrics.isEmpty()) Text("Usa letras LRC que tengas guardadas en tu dispositivo.", color = Color(0xFF9CA3AF), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                    "minimal" -> Text("♫  " + state.artist.ifBlank { state.title }, color = Color(0xFFB7F36B), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
     }
 }
-
 @Composable
 private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
