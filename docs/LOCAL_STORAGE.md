@@ -18,9 +18,9 @@ The Room schema, repository and first library screen are wired together. Users c
 
 ## Remote catalog and artwork
 
-The catalog sync repository downloads artist, album, track and video metadata into the Room catalog cache. Each entry carries the server version; a cached entry is replaced only when the incoming version is equal or newer. The sync is user-triggered from the catalog screen and leaves previously cached content available when offline.
+The catalog sync repository downloads artist, album, track and video metadata in bounded 500-record pages and writes each page to Room in a batch while preserving version-aware updates. Each entry carries the server version; a cached entry is replaced only when the incoming version is equal or newer. The sync is user-triggered from the catalog screen and leaves previously cached content available when offline.
 
-Artwork is loaded from the public `music-artwork` Storage bucket. Coil is configured with a 48 MB disk cache and a bounded memory cache. Data Saver suppresses catalog artwork requests to reduce network use.
+Artwork is loaded from the public `music-artwork` Storage bucket. Coil is configured with a bounded memory cache and a persistent 128 MB disk cache in the app's private files directory. Catalog artwork is requested by visible LazyColumn items, shown with lightweight loading placeholders, and reused from cache when available. Data Saver suppresses catalog artwork requests to reduce network use.
 
 ## Playlists and sharing
 
