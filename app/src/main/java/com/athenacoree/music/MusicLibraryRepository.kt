@@ -13,12 +13,24 @@ internal class MusicLibraryRepository(
     val favorites: Flow<List<LocalTrackEntity>> = dao.observeFavorites()
     val playlists: Flow<List<LocalPlaylistEntity>> = dao.observePlaylists()
     val trackCount: Flow<Int> = dao.observeTrackCount()
+    val playbackCount: Flow<Int> = dao.observePlaybackCount()
+    val recentPlayback: Flow<List<PlaybackHistoryEntity>> = dao.observeRecentPlayback()
+    val mostPlayed: Flow<List<PlaybackStat>> = dao.observeMostPlayed()
 
     fun search(query: String): Flow<List<LocalTrackEntity>> = dao.searchTracks(query.trim())
 
     fun catalog(kind: String): Flow<List<CatalogEntryEntity>> = dao.observeCatalog(kind)
 
     internal val databaseDao: MusicLibraryDao get() = dao
+
+    suspend fun recordPlayback(track: LocalTrackEntity) = dao.recordPlayback(
+        PlaybackHistoryEntity(
+            id = java.util.UUID.randomUUID().toString(),
+            trackId = track.id,
+            title = track.title,
+            artistName = track.artistName
+        )
+    )
 
     suspend fun addTrack(track: LocalTrackEntity) = dao.saveTrack(track)
 
