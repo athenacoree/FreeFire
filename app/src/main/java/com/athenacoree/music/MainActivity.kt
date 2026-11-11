@@ -325,6 +325,13 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     if (visualMode == "karaoke") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = {
+                        val speeds = listOf(0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
+                        val current = speeds.indexOfFirst { kotlin.math.abs(it - state.playbackSpeed) < 0.02f }
+                        MusicPlaybackController.setPlaybackSpeed(context, speeds[(current + 1).mod(speeds.size)])
+                    }) {
+                        Text(state.playbackSpeed.toString() + "×", color = Color(0xFFB6BAC4), fontSize = 10.sp)
+                    }
                     TextButton(onClick = { MusicPlaybackController.toggleShuffle(context) }) {
                         Text(if (state.shuffleEnabled) "Aleatorio: sí" else "Aleatorio", color = if (state.shuffleEnabled) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
                     }
