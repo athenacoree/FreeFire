@@ -149,6 +149,7 @@ private fun MusicApp() {
     val scope = rememberCoroutineScope()
     val saveableStateHolder = rememberSaveableStateHolder()
     val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = false)
+    val performanceMode by MusicPreferences.performanceMode(context).collectAsState(initial = "balanced")
     val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
     val playbackState by MusicPlaybackController.playbackState.collectAsState(initial = null)
@@ -226,18 +227,18 @@ private fun MusicApp() {
                         MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
+                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode -> scope.launch { MusicPreferences.setPerformanceMode(context, mode) } }, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                     }
                 }
             }
-            MusicMiniPlayer(playbackState, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, onVisualModeChange = { playerVisualMode = it })
+            MusicMiniPlayer(playbackState, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
             MusicFeedbackBanner(feedback)
         }
     }
 }
 
 @Composable
-private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
+private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, performanceMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
     var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
@@ -262,8 +263,12 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
             if (!isSeeking) positionMs = MusicPlaybackController.currentPosition()
             delay(
                 when {
-                    !state.isPlaying -> 1_000L
+                    !state.isPlaying -> if (performanceMode == "battery") 1_800L else 1_000L
+                    visualMode == "karaoke" && performanceMode == "performance" -> 120L
+                    visualMode == "karaoke" && performanceMode == "battery" -> 360L
                     visualMode == "karaoke" -> 180L
+                    performanceMode == "battery" -> 1_200L
+                    performanceMode == "performance" -> 450L
                     else -> 700L
                 }
             )
@@ -1520,6 +1525,8 @@ private fun ProfileScreen(
     colors: MusicColors,
     padding: PaddingValues,
     darkMode: Boolean,
+    performanceMode: String,
+    onPerformanceModeChange: (String) -> Unit,
     sleepTimerMinutes: Int,
     onSleepTimerChange: (Int) -> Unit,
     onThemeChange: () -> Unit,
@@ -1814,6 +1821,39 @@ private fun ProfileScreen(
                             Text("${level / 100} dB", color = colors.muted, fontSize = 10.sp)
                         }
                         Slider(value = level.toFloat(), onValueChange = { MusicEqualizerController.setBand(index, it.toInt()) }, valueRange = equalizer.minLevel.toFloat()..equalizer.maxLevel.toFloat(), enabled = equalizer.enabled)
+                    }
+                }
+            }
+        }
+        Text("Rendimiento", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surface).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Modo de funcionamiento", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text(
+                when (performanceMode) {
+                    "performance" -> "Actualización rápida del karaoke y controles más fluidos. Puede consumir más batería."
+                    "battery" -> "Reduce actualizaciones visuales para prolongar la batería."
+                    else -> "Equilibrio entre fluidez, consumo y respuesta."
+                },
+                color = colors.muted, fontSize = 11.sp, lineHeight = 16.sp
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                listOf("battery" to "Ahorro", "balanced" to "Equilibrado", "performance" to "Rendimiento").forEach { (mode, label) ->
+                    Surface(
+                        color = if (performanceMode == mode) colors.accent else colors.surfaceAlt,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).clickable { onPerformanceModeChange(mode) }
+                    ) {
+                        Text(
+                            label,
+                            color = if (performanceMode == mode) colors.accentText else colors.text,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 11.dp)
+                        )
                     }
                 }
             }
