@@ -64,52 +64,64 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
         const val PAGE_SIZE = 500L
     }
 
-    private suspend inline fun <reified T> fetchAll(table: String): List<T> {
-        val result = mutableListOf<T>()
-        var from = 0L
+    private suspend inline fun <reified T> syncPages(
+        table: String,
+        crossinline toEntry: (T) -> CatalogEntryEntity,
+        crossinline onPage: (List<T>) -> Unit = {}
+    ): Int {
+        var offset = 0L
+        var total = 0
         while (true) {
             val page = MusicSupabase.client.from(table)
                 .select {
                     order(column = "id", order = Order.ASCENDING)
-                    range(from..(from + PAGE_SIZE - 1))
+                    range(offset..(offset + PAGE_SIZE - 1))
                 }
                 .decodeList<T>()
-            result.addAll(page)
-            if (page.size < PAGE_SIZE) return result
-            from += PAGE_SIZE
+            if (page.isEmpty()) break
+            onPage(page)
+            dao.upsertCatalogEntriesIfNewer(page.map(toEntry))
+            total += page.size
+            if (page.size < PAGE_SIZE) break
+            offset += page.size
         }
+        return total
     }
 
     suspend fun syncAll(): CatalogSyncResult {
-        val artists = fetchAll<ArtistDto>("artists")
-        val artistNames = artists.associate { it.id to it.name }
-        artists.forEach { item ->
-            dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "artist", item.name, item.biography.orEmpty(),
-                item.imagePath, version = item.version, updatedAt = item.updatedAt))
-        }
-
-        val albums = fetchAll<AlbumDto>("albums")
-        albums.forEach { item ->
-            dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "album", item.title,
+        val artistNames = mutableMapOf<String, String>()
+        val artists = syncPages<ArtistDto>(
+            table = "artists",
+            toEntry = { item ->
+                CatalogEntryEntity(
+                    item.id, "artist", item.name, item.biography.orEmpty(),
+                    item.imagePath, version = item.version, updatedAt = item.updatedAt
+                )
+            },
+            onPage = { page -> page.forEach { artistNames[it.id] = it.name } }
+        )
+        val albums = syncPages<AlbumDto>("albums") { item ->
+            CatalogEntryEntity(
+                item.id, "album", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
-                version = item.version, updatedAt = item.updatedAt))
+                version = item.version, updatedAt = item.updatedAt
+            )
         }
-
-        val tracks = fetchAll<TrackDto>("tracks")
-        tracks.forEach { item ->
-            dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "track", item.title,
+        val tracks = syncPages<TrackDto>("tracks") { item ->
+            CatalogEntryEntity(
+                item.id, "track", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
-                item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt))
+                item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt
+            )
         }
-
-        val videos = fetchAll<VideoDto>("videos")
-        videos.forEach { item ->
-            dao.upsertCatalogEntryIfNewer(CatalogEntryEntity(item.id, "video", item.title,
+        val videos = syncPages<VideoDto>("videos") { item ->
+            CatalogEntryEntity(
+                item.id, "video", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.thumbnailPath,
                 item.provider, item.providerVideoId, item.authorizedMediaPath,
-                item.version, item.updatedAt))
+                item.version, item.updatedAt
+            )
         }
-
-        return CatalogSyncResult(artists.size, albums.size, tracks.size, videos.size)
+        return CatalogSyncResult(artists, albums, tracks, videos)
     }
 }
