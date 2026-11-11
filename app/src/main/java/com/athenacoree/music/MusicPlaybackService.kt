@@ -163,8 +163,6 @@ internal object MusicPlaybackController {
             controller = null
             pendingActions.clear()
             connecting = false
-            sleepTimerJob?.cancel()
-            sleepTimerJob = null
         }
     }
 }
