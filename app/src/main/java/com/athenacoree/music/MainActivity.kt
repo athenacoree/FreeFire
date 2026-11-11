@@ -518,7 +518,7 @@ private fun MusicTopBar(colors: MusicColors, darkMode: Boolean, onThemeChange: (
 @Composable
 private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: MusicLibraryRepository, onExplore: () -> Unit) {
     val recentTracks by repository.recentlyPlayedTracks.collectAsState(initial = emptyList())
-    val favoriteTracks by repository.favorites.collectAsState(initial = emptyList())
+    val favoriteCount by repository.favoriteCount.collectAsState(initial = 0)
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
@@ -539,7 +539,7 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MiniCollection("Reproducciones", playbackCount.toString(), "♫", colors, Modifier.weight(1f))
-                MiniCollection("Favoritos", favoriteTracks.size.toString(), "♥", colors, Modifier.weight(1f))
+                MiniCollection("Favoritos", favoriteCount.toString(), "♥", colors, Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
             Column(
@@ -684,8 +684,9 @@ private fun LibraryScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var trackPendingRemoval by remember { mutableStateOf<LocalTrackEntity?>(null) }
     val filters = listOf("Todo", "Favoritos")
-    val tracks by remember(searchQuery) { repository.search(searchQuery) }.collectAsState(initial = emptyList())
-    val favorites by remember(searchQuery) { repository.searchFavorites(searchQuery) }.collectAsState(initial = emptyList())
+    val visibleTracks by remember(searchQuery, filter) {
+        if (filter == "Favoritos") repository.searchFavorites(searchQuery) else repository.search(searchQuery)
+    }.collectAsState(initial = emptyList())
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     val mostPlayed by repository.mostPlayed.collectAsState(initial = emptyList())
     val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
@@ -744,8 +745,6 @@ private fun LibraryScreen(
             } else showFeedback("No se pudieron añadir los archivos seleccionados.", MusicFeedbackType.ERROR)
         }
     }
-
-    val visibleTracks = if (filter == "Favoritos") favorites else tracks
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
