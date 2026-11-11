@@ -193,7 +193,7 @@ private fun MusicApp() {
                 }
             ) { padding ->
                 when (tab) {
-                    MusicTab.Home -> HomeScreen(colors, padding) { selectedTab = MusicTab.Videos.name }
+                    MusicTab.Home -> HomeScreen(colors, padding, libraryRepository) { selectedTab = MusicTab.Videos.name }
                     MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
@@ -349,7 +349,11 @@ private fun MusicTopBar(colors: MusicColors, darkMode: Boolean, onThemeChange: (
 }
 
 @Composable
-private fun HomeScreen(colors: MusicColors, padding: PaddingValues, onExplore: () -> Unit) {
+private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: MusicLibraryRepository, onExplore: () -> Unit) {
+    val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
+    val localTracks by repository.tracks.collectAsState(initial = emptyList())
+    val favoriteTracks by repository.favorites.collectAsState(initial = emptyList())
+    val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp),
@@ -365,11 +369,35 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, onExplore: (
             FeaturedCard(colors, onExplore)
         }
         item {
-            SectionHeader("Escuchado recientemente", "Ver todo", colors)
+            SectionHeader("Tu actividad musical", "Biblioteca", colors)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MiniCollection("Tus favoritos", "Tu colección personal", "♫", colors, Modifier.weight(1f))
-                MiniCollection("Descubrir", "Encuentra algo nuevo", "✦", colors, Modifier.weight(1f))
+                MiniCollection("Reproducciones", playbackCount.toString(), "♫", colors, Modifier.weight(1f))
+                MiniCollection("Favoritos", favoriteTracks.size.toString(), "♥", colors, Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(12.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                    .background(colors.surface).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                Text("Escuchado recientemente", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                val recentTracks = recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
+                    .distinctBy { it.id }
+                if (recentTracks.isEmpty()) {
+                    Text("Tus canciones aparecerán aquí cuando empieces a reproducirlas.", color = colors.muted, fontSize = 11.sp)
+                } else {
+                    recentTracks.take(4).forEach { track ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = colors.accent, modifier = Modifier.size(17.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(track.title, color = colors.text, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(track.artistName.ifBlank { "Audio local" }, color = colors.muted, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                }
             }
         }
         item {
