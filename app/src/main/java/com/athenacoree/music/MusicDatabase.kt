@@ -81,6 +81,12 @@ interface MusicLibraryDao {
     @Query("SELECT * FROM local_tracks WHERE title LIKE '%' || :query || '%' OR artistName LIKE '%' || :query || '%' ORDER BY title")
     fun searchTracks(query: String): Flow<List<LocalTrackEntity>>
 
+    @Query("SELECT * FROM local_tracks WHERE isFavorite = 1 AND (title LIKE '%' || :query || '%' OR artistName LIKE '%' || :query || '%') ORDER BY addedAt DESC")
+    fun searchFavoriteTracks(query: String): Flow<List<LocalTrackEntity>>
+
+    @Query("SELECT t.* FROM local_tracks t INNER JOIN (SELECT trackId, MAX(playedAt) AS lastPlayed FROM playback_history GROUP BY trackId) recent ON recent.trackId = t.id ORDER BY recent.lastPlayed DESC LIMIT 4")
+    fun observeRecentlyPlayedTracks(): Flow<List<LocalTrackEntity>>
+
     @Query("SELECT COUNT(*) FROM local_tracks")
     fun observeTrackCount(): Flow<Int>
 
