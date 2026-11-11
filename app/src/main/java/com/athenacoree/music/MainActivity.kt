@@ -344,15 +344,22 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Cola de reproducción", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("${state.queue.size} canciones", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Cola de reproducción", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("${state.queue.size} canciones", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+                        }
+                        TextButton(onClick = { MusicPlaybackController.clearQueue(context); showQueue = false }) {
+                            Text("Vaciar", color = Color(0xFFFF8A80), fontSize = 11.sp)
+                        }
+                    }
                     Column(modifier = Modifier.fillMaxWidth().height(340.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         state.queue.forEach { item ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                                     .background(if (item.isCurrent) Color(0xFF343D2B) else Color(0xFF292D36))
                                     .clickable { MusicPlaybackController.playQueueItem(context, item.index); showQueue = false }
-                                    .padding(12.dp),
+                                    .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(if (item.isCurrent) "♫" else "${item.index + 1}", color = if (item.isCurrent) Color(0xFFB7F36B) else Color(0xFF9CA3AF), fontSize = 12.sp)
@@ -360,6 +367,9 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(item.title, color = if (item.isCurrent) Color(0xFFB7F36B) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(item.artist.ifBlank { "Audio" }, color = Color(0xFF9CA3AF), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                TextButton(onClick = { MusicPlaybackController.removeQueueItem(context, item.index) }) {
+                                    Text("×", color = Color(0xFFFF8A80), fontSize = 20.sp)
                                 }
                             }
                         }
