@@ -220,6 +220,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
     var isSeeking by remember(state.mediaId) { mutableStateOf(false) }
     var expandedLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    var lyricsOffsetMs by rememberSaveable(state.mediaId) { mutableStateOf(0L) }
     var showQueue by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
     LaunchedEffect(state.mediaId) {
@@ -243,7 +244,8 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         val seconds = (value.coerceAtLeast(0L) / 1000L)
         return "%d:%02d".format(seconds / 60L, seconds % 60L)
     }
-    val activeIndex = currentLyrics.indexOfLast { it.timeMs <= positionMs }
+    val lyricPositionMs = (positionMs + lyricsOffsetMs).coerceAtLeast(0L)
+    val activeIndex = currentLyrics.indexOfLast { it.timeMs <= lyricPositionMs }
     val previousLine = currentLyrics.getOrNull(activeIndex - 1)
     val activeLine = currentLyrics.getOrNull(activeIndex)
     val nextLine = currentLyrics.getOrNull(activeIndex + 1)
@@ -327,10 +329,18 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         Spacer(Modifier.height(30.dp))
                         Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 17.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                        IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(30.dp)) }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs - 500L).coerceAtLeast(-10_000L) }) { Text("−0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
+                            Text("Ajuste ${if (lyricsOffsetMs >= 0) "+" else ""}${lyricsOffsetMs / 1000.0}s", color = Color(0xFF9CA3AF), fontSize = 10.sp)
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs + 500L).coerceAtMost(10_000L) }) { Text("+0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = 0L }) { Text("Reset", color = Color(0xFF9CA3AF), fontSize = 10.sp) }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                            IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(30.dp)) }
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = Color(0xFFB7F36B), modifier = Modifier.size(42.dp)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(30.dp)) }
+                        }
                     }
                 }
             }
