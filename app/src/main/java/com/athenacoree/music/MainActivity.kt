@@ -143,6 +143,7 @@ private fun MusicApp() {
     var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
     var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
     var playerVisualMode by rememberSaveable { mutableStateOf("normal") }
+    LaunchedEffect(playbackState?.mediaId) { lyricsLines = emptyList() }
     val tab = MusicTab.valueOf(selectedTab)
 
     val colors = if (darkMode) {
@@ -212,14 +213,14 @@ private fun MusicApp() {
 @Composable
 private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, onLyricsChange: (List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
-    var positionMs by remember(state.title) { mutableStateOf(0L) }
+    var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("No se pudo leer el archivo.") }
                 .onSuccess { raw -> onLyricsChange(MusicLyricsParser.parse(raw)) }
         }
     }
-    LaunchedEffect(state.title, state.isPlaying, visualMode) {
+    LaunchedEffect(state.mediaId, state.isPlaying, visualMode) {
         if (visualMode == "karaoke") {
             while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
         }
