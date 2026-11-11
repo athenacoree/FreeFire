@@ -94,6 +94,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +113,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
+
+
+private fun findActiveLyricIndex(lines: List<MusicLyricsLine>, positionMs: Long): Int {
+    var low = 0
+    var high = lines.size
+    while (low < high) {
+        val middle = (low + high) ushr 1
+        if (lines[middle].timeMs <= positionMs) low = middle + 1 else high = middle
+    }
+    return low - 1
+}
 
 private enum class MusicFeedbackType { SUCCESS, ERROR, INFO, LOADING }
 private data class MusicFeedback(val message: String, val type: MusicFeedbackType)
@@ -135,6 +147,7 @@ class MainActivity : ComponentActivity() {
 private fun MusicApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val saveableStateHolder = rememberSaveableStateHolder()
     val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = false)
     val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
@@ -207,12 +220,14 @@ private fun MusicApp() {
                     }
                 }
             ) { padding ->
-                when (tab) {
-                    MusicTab.Home -> HomeScreen(colors, padding, libraryRepository) { selectedTab = MusicTab.Videos.name }
-                    MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
-                    MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
-                    MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                    MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
+                saveableStateHolder.SaveableStateProvider(tab.name) {
+                    when (tab) {
+                        MusicTab.Home -> HomeScreen(colors, padding, libraryRepository) { selectedTab = MusicTab.Videos.name }
+                        MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
+                        MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
+                        MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
+                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
+                    }
                 }
             }
             MusicMiniPlayer(playbackState, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, onVisualModeChange = { playerVisualMode = it })
@@ -259,7 +274,9 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         return "%d:%02d".format(seconds / 60L, seconds % 60L)
     }
     val lyricPositionMs = (positionMs + lyricsOffsetMs).coerceAtLeast(0L)
-    val activeIndex = currentLyrics.indexOfLast { it.timeMs <= lyricPositionMs }
+    val activeIndex = remember(currentLyrics, lyricPositionMs) {
+        findActiveLyricIndex(currentLyrics, lyricPositionMs)
+    }
     val previousLine = currentLyrics.getOrNull(activeIndex - 1)
     val activeLine = currentLyrics.getOrNull(activeIndex)
     val nextLine = currentLyrics.getOrNull(activeIndex + 1)
