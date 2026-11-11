@@ -38,6 +38,15 @@ class MusicPlaybackService : MediaSessionService() {
             )
             setHandleAudioBecomingNoisy(true)
         }
+        player.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) MusicEqualizerController.attach(player.audioSessionId)
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) MusicEqualizerController.attach(player.audioSessionId)
+            }
+        })
+        MusicEqualizerController.attach(player.audioSessionId)
         mediaSession = MediaSession.Builder(this, player).build()
     }
 
@@ -49,6 +58,7 @@ class MusicPlaybackService : MediaSessionService() {
             session.release()
         }
         mediaSession = null
+        MusicEqualizerController.release()
         MusicPlaybackController.release()
         super.onDestroy()
     }
