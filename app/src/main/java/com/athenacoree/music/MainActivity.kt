@@ -219,8 +219,10 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                 .onSuccess { raw -> onLyricsChange(MusicLyricsParser.parse(raw)) }
         }
     }
-    LaunchedEffect(state.title, state.isPlaying) {
-        while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
+    LaunchedEffect(state.title, state.isPlaying, visualMode) {
+        if (visualMode == "karaoke") {
+            while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
+        }
     }
     val activeIndex = lyrics.indexOfLast { it.timeMs <= positionMs }
     val activeLine = lyrics.getOrNull(activeIndex)
