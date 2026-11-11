@@ -16,6 +16,7 @@ internal class MusicLibraryRepository(
     val favorites: Flow<List<LocalTrackEntity>> = dao.observeFavorites()
     val playlists: Flow<List<LocalPlaylistEntity>> = dao.observePlaylists()
     val trackCount: Flow<Int> = dao.observeTrackCount()
+    val favoriteCount: Flow<Int> = dao.observeFavoriteCount()
     val playbackCount: Flow<Int> = dao.observePlaybackCount()
     val recentPlayback: Flow<List<PlaybackHistoryEntity>> = dao.observeRecentPlayback()
     val recentlyPlayedTracks: Flow<List<LocalTrackEntity>> = dao.observeRecentlyPlayedTracks()
