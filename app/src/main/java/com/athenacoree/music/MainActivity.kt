@@ -623,11 +623,15 @@ private fun LibraryScreen(
                                     val audioQueue = visibleTracks.filter { it.mediaUri != null && it.source != "device-video" }
                                         .map { Uri.parse(it.mediaUri) to it.title }
                                     val selectedIndex = audioQueue.indexOfFirst { it.first == Uri.parse(media) }.coerceAtLeast(0)
-                                    MusicPlaybackController.playQueue(context, audioQueue, selectedIndex)
-                                }.onSuccess {
-                                    showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
+                                    MusicPlaybackController.playQueue(context, audioQueue, selectedIndex) { result ->
+                                        result.onSuccess {
+                                            showFeedback("Reproduciendo " + track.title + ".", MusicFeedbackType.INFO)
+                                        }.onFailure {
+                                            showFeedback("No se pudo iniciar la reproducción. Comprueba el archivo e inténtalo de nuevo.", MusicFeedbackType.ERROR)
+                                        }
+                                    }
                                 }.onFailure {
-                                    showFeedback("No se pudo reproducir esta canción.", MusicFeedbackType.ERROR)
+                                    showFeedback("No se pudo preparar esta canción.", MusicFeedbackType.ERROR)
                                 }
                             }
                         }.padding(13.dp),
