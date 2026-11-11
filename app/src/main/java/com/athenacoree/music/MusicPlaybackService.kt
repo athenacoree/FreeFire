@@ -123,6 +123,8 @@ class MusicPlaybackService : MediaSessionService() {
     }
 }
 
+internal data class MusicPlaybackItem(val uri: Uri, val title: String, val artist: String = "", val albumTitle: String = "", val artworkUri: String? = null)
+
 internal data class MusicQueueItem(val index: Int, val title: String, val artist: String, val mediaId: String, val isCurrent: Boolean)
 
 internal data class MusicPlaybackUiState(
@@ -226,19 +228,22 @@ internal object MusicPlaybackController {
         }, app.mainExecutor)
     }
 
-    fun play(context: Context, uri: Uri, title: String, onComplete: (Result<Unit>) -> Unit = {}) {
+    fun play(context: Context, item: MusicPlaybackItem, onComplete: (Result<Unit>) -> Unit = {}) {
         connect(context, { player ->
-            val item = MediaItem.Builder().setUri(uri)
-                .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build()
-            player.setMediaItem(item)
+            val metadata = MediaMetadata.Builder().setTitle(item.title).setArtist(item.artist)
+                .setAlbumTitle(item.albumTitle).setArtworkUri(item.artworkUri?.let(Uri::parse)).build()
+            player.setMediaItem(MediaItem.Builder().setUri(item.uri).setMediaMetadata(metadata).build())
             player.prepare()
             player.play()
         }, onComplete)
     }
 
+    fun play(context: Context, uri: Uri, title: String, onComplete: (Result<Unit>) -> Unit = {}) =
+        play(context, MusicPlaybackItem(uri, title), onComplete)
+
     fun playQueue(
         context: Context,
-        items: List<Pair<Uri, String>>,
+        items: List<MusicPlaybackItem>,
         startIndex: Int = 0,
         onComplete: (Result<Unit>) -> Unit = {}
     ) {
@@ -247,9 +252,10 @@ internal object MusicPlaybackController {
             return
         }
         connect(context, { player ->
-            val mediaItems = items.map { (uri, title) ->
-                MediaItem.Builder().setUri(uri)
-                    .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build()
+            val mediaItems = items.map { item ->
+                val metadata = MediaMetadata.Builder().setTitle(item.title).setArtist(item.artist)
+                    .setAlbumTitle(item.albumTitle).setArtworkUri(item.artworkUri?.let(Uri::parse)).build()
+                MediaItem.Builder().setUri(item.uri).setMediaMetadata(metadata).build()
             }
             player.setMediaItems(mediaItems, startIndex.coerceIn(mediaItems.indices), 0L)
             player.prepare()
