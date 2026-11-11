@@ -190,7 +190,7 @@ private fun MusicApp() {
                 when (tab) {
                     MusicTab.Home -> HomeScreen(colors, padding) { selectedTab = MusicTab.Videos.name }
                     MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
-                    MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository)
+                    MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
                     MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, onThemeChange = changeTheme, showFeedback = showFeedback)
                 }
@@ -459,42 +459,36 @@ private fun LibraryScreen(
                     showFeedback("Biblioteca actualizada correctamente.", MusicFeedbackType.SUCCESS)
                     scanStatus = if (result.imported == 0) "No quedan más archivos multimedia con los permisos concedidos." else
                         "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes importar los siguientes cinco." else "Exploración completada."
-                }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}" }
+                }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}"; showFeedback("No se pudo explorar la biblioteca. Revisa los permisos e inténtalo de nuevo.", MusicFeedbackType.ERROR) }
             }
         } else {
             scanStatus = "Concede permiso para leer audio o vídeo para continuar."
+            showFeedback("Se necesitan permisos para explorar los archivos del dispositivo.", MusicFeedbackType.ERROR)
         }
     }
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
-        uris.forEach { uri ->
-            scope.launch {
+        if (uris.isNotEmpty()) scope.launch {
+            showFeedback("Añadiendo ${uris.size} archivo(s)…", MusicFeedbackType.LOADING)
+            var imported = 0
+            uris.forEach { uri ->
                 runCatching {
-                    context.contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                }
-                val displayName = context.contentResolver.query(
-                    uri,
-                    arrayOf(OpenableColumns.DISPLAY_NAME),
-                    null,
-                    null,
-                    null
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) cursor.getString(0) else null
-                } ?: "Archivo de audio"
-                repository.addTrack(
-                    LocalTrackEntity(
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    val displayName = context.contentResolver.query(
+                        uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+                    )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "Archivo de audio"
+                    repository.addTrack(LocalTrackEntity(
                         id = uri.toString(),
                         title = displayName.substringBeforeLast('.', displayName),
                         mediaUri = uri.toString(),
                         source = "device"
-                    )
-                )
+                    ))
+                }.onSuccess { imported++ }
             }
+            if (imported > 0) showFeedback("$imported archivo(s) añadido(s) a tu biblioteca.", MusicFeedbackType.SUCCESS)
+            else showFeedback("No se pudieron añadir los archivos seleccionados.", MusicFeedbackType.ERROR)
         }
     }
 
@@ -550,10 +544,10 @@ private fun LibraryScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = { MusicPlaybackController.previous(context) }) { Text("Anterior", color = colors.accent, fontSize = 11.sp) }
-                    TextButton(onClick = { MusicPlaybackController.pause(context) }) { Text("Pausa", color = colors.text, fontWeight = FontWeight.Bold) }
-                    TextButton(onClick = { MusicPlaybackController.resume(context) }) { Text("Continuar", color = colors.accent, fontWeight = FontWeight.Bold) }
-                    TextButton(onClick = { MusicPlaybackController.next(context) }) { Text("Siguiente", color = colors.accent, fontSize = 11.sp) }
+                    TextButton(onClick = { runCatching { MusicPlaybackController.previous(context) }.onFailure { showFeedback("No se pudo volver a la canción anterior.", MusicFeedbackType.ERROR) } }) { Text("Anterior", color = colors.accent, fontSize = 11.sp) }
+                    TextButton(onClick = { runCatching { MusicPlaybackController.pause(context) }.onFailure { showFeedback("No se pudo pausar la reproducción.", MusicFeedbackType.ERROR) } }) { Text("Pausa", color = colors.text, fontWeight = FontWeight.Bold) }
+                    TextButton(onClick = { runCatching { MusicPlaybackController.resume(context) }.onFailure { showFeedback("No se pudo reanudar la reproducción.", MusicFeedbackType.ERROR) } }) { Text("Continuar", color = colors.accent, fontWeight = FontWeight.Bold) }
+                    TextButton(onClick = { runCatching { MusicPlaybackController.next(context) }.onFailure { showFeedback("No se pudo pasar a la siguiente canción.", MusicFeedbackType.ERROR) } }) { Text("Siguiente", color = colors.accent, fontSize = 11.sp) }
                 }
             }
         }
@@ -742,7 +736,8 @@ private fun SimpleSectionScreen(
 private fun CatalogBrowserScreen(
     colors: MusicColors,
     padding: PaddingValues,
-    repository: MusicLibraryRepository
+    repository: MusicLibraryRepository,
+    showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
     var kind by rememberSaveable { mutableStateOf("video") }
     var syncStatus by rememberSaveable { mutableStateOf("Catálogo guardado en este dispositivo") }
@@ -774,6 +769,7 @@ private fun CatalogBrowserScreen(
             onClick = {
                 if (!syncing) {
                     syncing = true
+                    showFeedback("Actualizando el catálogo…", MusicFeedbackType.LOADING)
                     scope.launch {
                         val result = runCatching {
                             withContext(Dispatchers.IO) {
@@ -784,6 +780,8 @@ private fun CatalogBrowserScreen(
                             { "Actualizado: ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
                             { "Error al sincronizar: ${it.message?.take(180) ?: "error desconocido"}. Se conserva el catálogo descargado anteriormente." }
                         )
+                        if (result.isSuccess) showFeedback("Catálogo actualizado correctamente.", MusicFeedbackType.SUCCESS)
+                        else showFeedback("No se pudo actualizar el catálogo. Se conserva lo descargado.", MusicFeedbackType.ERROR)
                         syncing = false
                     }
                 }
@@ -821,6 +819,7 @@ private fun CatalogBrowserScreen(
                                         val url = if (entry.provider.equals("youtube", true) && !entry.providerId.isNullOrBlank())
                                             "https://www.youtube.com/watch?v=${entry.providerId}" else entry.mediaPath
                                         if (!url.isNullOrBlank()) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                        .onFailure { showFeedback("No se pudo abrir este contenido.", MusicFeedbackType.ERROR) }
                                     }
                                 }
                             }.padding(12.dp),
@@ -847,11 +846,12 @@ private fun CatalogBrowserScreen(
                         if (kind == "track") {
                             TextButton(onClick = {
                                 scope.launch {
-                                    repository.addTrack(LocalTrackEntity(
+                                    runCatching { repository.addTrack(LocalTrackEntity(
                                         id = "catalog:${entry.id}", title = entry.title,
                                         artistName = entry.subtitle, artworkUri = entry.imagePath,
                                         source = "catalog"
-                                    ))
+                                    )) }.onSuccess { showFeedback("Canción guardada en tu biblioteca.", MusicFeedbackType.SUCCESS) }
+                                        .onFailure { showFeedback("No se pudo guardar la canción.", MusicFeedbackType.ERROR) }
                                 }
                             }) { Text("Guardar", color = colors.accent, fontSize = 11.sp) }
                         } else if (kind == "video") {
