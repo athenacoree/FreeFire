@@ -189,8 +189,10 @@ internal object MusicPlaybackController {
 
     fun release() {
         synchronized(lock) {
+            controller?.removeListener(playerListener)
             controller?.release()
             controller = null
+            _playbackState.value = null
             pendingActions.clear()
             connecting = false
         }
