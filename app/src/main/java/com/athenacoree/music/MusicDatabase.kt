@@ -90,6 +90,9 @@ interface MusicLibraryDao {
     @Query("SELECT COUNT(*) FROM local_tracks")
     fun observeTrackCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM local_tracks WHERE isFavorite = 1")
+    fun observeFavoriteCount(): Flow<Int>
+
     @Query("SELECT * FROM local_tracks WHERE mediaUri = :mediaUri LIMIT 1")
     suspend fun findTrackByMediaUri(mediaUri: String): LocalTrackEntity?
 
