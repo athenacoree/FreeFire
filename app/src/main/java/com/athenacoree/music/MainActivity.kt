@@ -329,7 +329,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    if (visualMode == "karaoke") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
+                    if (visualMode == "karaoke" || visualMode == "lyrics") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = {
@@ -356,7 +356,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         if (currentLyrics.isEmpty()) Text("Usa letras LRC que tengas guardadas en tu dispositivo.", color = Color(0xFF9CA3AF), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     "lyrics" -> Column(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 17.dp),
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true; showFullLyrics = true }.padding(horizontal = 14.dp, vertical = 17.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -395,7 +395,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                                 itemsIndexed(currentLyrics) { index, line ->
                                     Text(
                                         line.text,
-                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) Color(0xFF293421) else Color.Transparent).clickable { MusicPlaybackController.seekTo(line.timeMs) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) Color(0xFF293421) else Color.Transparent).clickable { MusicPlaybackController.seekTo((line.timeMs - lyricsOffsetMs).coerceAtLeast(0L)) }.padding(horizontal = 14.dp, vertical = 12.dp),
                                         color = if (index == activeIndex) Color(0xFFB7F36B) else Color(0xFF8992A0),
                                         fontSize = if (index == activeIndex) 19.sp else 15.sp,
                                         fontWeight = if (index == activeIndex) FontWeight.Bold else FontWeight.Normal,
