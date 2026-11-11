@@ -5,9 +5,11 @@ internal data class MusicLyricsLine(val timeMs: Long, val text: String)
 
 internal object MusicLyricsParser {
     private val timestamp = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]""")
+    private val offsetTag = Regex("""\[offset:([+-]?\d+)]""", RegexOption.IGNORE_CASE)
 
     fun parse(source: String): List<MusicLyricsLine> {
         val result = mutableListOf<MusicLyricsLine>()
+        val offsetMs = offsetTag.findAll(source).lastOrNull()?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
         for (raw in source.lineSequence()) {
             val matches = timestamp.findAll(raw).toList()
             if (matches.isEmpty()) continue
@@ -23,7 +25,10 @@ internal object MusicLyricsParser {
                     3 -> fraction.toLongOrNull() ?: 0L
                     else -> 0L
                 }
-                if (seconds < 60) result += MusicLyricsLine((minutes * 60 + seconds) * 1000 + millis, lyric)
+                if (seconds < 60) {
+                    val timestampMs = (minutes * 60 + seconds) * 1000 + millis
+                    result += MusicLyricsLine((timestampMs + offsetMs).coerceAtLeast(0L), lyric)
+                }
             }
         }
         return result.sortedBy { it.timeMs }
