@@ -5,6 +5,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import android.Manifest
 import android.os.Build
 import android.content.Intent
@@ -994,6 +1004,43 @@ private fun SimpleSectionScreen(
 }
 
 @Composable
+private fun ArtworkSkeleton(modifier: Modifier = Modifier, colors: MusicColors) {
+    val transition = rememberInfiniteTransition(label = "artwork-skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.38f,
+        targetValue = 0.78f,
+        animationSpec = infiniteRepeatable(animation = tween(850), repeatMode = RepeatMode.Reverse),
+        label = "artwork-skeleton-alpha"
+    )
+    Box(modifier = modifier.background(colors.surfaceAlt.copy(alpha = alpha)))
+}
+
+@Composable
+private fun ArtworkFallback(colors: MusicColors) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(colors.surfaceAlt),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Icons.Default.MusicNote, contentDescription = null, tint = colors.accent)
+    }
+}
+
+@Composable
+private fun CatalogEntrySkeleton(colors: MusicColors) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(colors.surface).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ArtworkSkeleton(Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)), colors)
+        Spacer(Modifier.width(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+            ArtworkSkeleton(Modifier.fillMaxWidth(0.72f).height(12.dp).clip(RoundedCornerShape(8.dp)), colors)
+            ArtworkSkeleton(Modifier.fillMaxWidth(0.46f).height(9.dp).clip(RoundedCornerShape(8.dp)), colors)
+        }
+    }
+}
+
+@Composable
 private fun CatalogBrowserScreen(
     colors: MusicColors,
     padding: PaddingValues,
@@ -1052,7 +1099,11 @@ private fun CatalogBrowserScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp)
         ) { Text(if (syncing) "Sincronizando…" else "Actualizar catálogo") }
         Text(syncStatus, color = colors.muted, fontSize = 10.sp, modifier = Modifier.padding(bottom = 8.dp))
-        if (entries.isEmpty()) {
+        if (entries.isEmpty() && syncing) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp, bottom = 20.dp)) {
+                repeat(5) { CatalogEntrySkeleton(colors) }
+            }
+        } else if (entries.isEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = 26.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.VideoLibrary, contentDescription = null, tint = colors.accent, modifier = Modifier.size(42.dp))
@@ -1088,11 +1139,23 @@ private fun CatalogBrowserScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (!dataSaver && !entry.imagePath.isNullOrBlank()) {
-                            AsyncImage(
-                                model = if (entry.imagePath.startsWith("http")) entry.imagePath
-                                    else "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/music-artwork/${entry.imagePath.trimStart('/')}",
+                            val artworkModel = remember(entry.imagePath, context) {
+                                ImageRequest.Builder(context)
+                                    .data(if (entry.imagePath.startsWith("http")) entry.imagePath
+                                        else "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/music-artwork/${entry.imagePath.trimStart('/')}")
+                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .crossfade(180)
+                                    .build()
+                            }
+                            SubcomposeAsyncImage(
+                                model = artworkModel,
                                 contentDescription = entry.title,
-                                modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp))
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
+                                loading = { ArtworkSkeleton(Modifier.fillMaxSize(), colors) },
+                                error = { ArtworkFallback(colors) },
+                                fallback = { ArtworkFallback(colors) }
                             )
                         } else {
                             Box(modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(colors.surfaceAlt),
