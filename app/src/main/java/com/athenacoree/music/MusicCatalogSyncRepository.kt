@@ -100,28 +100,28 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
             },
             onPage = { page -> page.forEach { artistNames[it.id] = it.name } }
         )
-        val albums = syncPages<AlbumDto>("albums") { item ->
+        val albums = syncPages<AlbumDto>(table = "albums", toEntry = { item ->
             CatalogEntryEntity(
                 item.id, "album", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
                 version = item.version, updatedAt = item.updatedAt
             )
-        }
-        val tracks = syncPages<TrackDto>("tracks") { item ->
+        })
+        val tracks = syncPages<TrackDto>(table = "tracks", toEntry = { item ->
             CatalogEntryEntity(
                 item.id, "track", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
                 item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt
             )
-        }
-        val videos = syncPages<VideoDto>("videos") { item ->
+        })
+        val videos = syncPages<VideoDto>(table = "videos", toEntry = { item ->
             CatalogEntryEntity(
                 item.id, "video", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.thumbnailPath,
                 item.provider, item.providerVideoId, item.authorizedMediaPath,
                 item.version, item.updatedAt
             )
-        }
+        })
         return CatalogSyncResult(artists, albums, tracks, videos)
     }
 }
