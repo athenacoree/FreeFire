@@ -14,6 +14,8 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 
 ## Decisiones del producto
 - Tema claro y oscuro, seleccionables desde la aplicación.
+- Modos de rendimiento, equilibrado y ahorro persistidos con DataStore; ajustan la frecuencia de actualización visual del reproductor y el karaoke.
+- Control de velocidad de reproducción entre 0,75× y 2× desde el mini reproductor.
 - Uso como invitado; la cuenta es opcional.
 - Biblioteca local-first: la aplicación sigue funcionando sin conexión.
 - Supabase es el servicio de autenticación, catálogo y listas colaborativas.
