@@ -37,16 +37,21 @@ internal object MusicPlaybackController {
     @Volatile private var controller: MediaController? = null
     private val lock = Any()
     private var connecting = false
-    private val pendingActions = mutableListOf<(MediaController) -> Unit>()
+    private val pendingActions = mutableListOf<Pair<(MediaController) -> Unit, (Result<Unit>) -> Unit>>()
 
-    private fun connect(context: Context, action: (MediaController) -> Unit) {
+    private fun connect(
+        context: Context,
+        action: (MediaController) -> Unit,
+        onComplete: (Result<Unit>) -> Unit = {}
+    ) {
         controller?.let { ready ->
-            runCatching { action(ready) }
+            val result = runCatching { action(ready) }
+            onComplete(result)
             return
         }
 
         val shouldStartConnection = synchronized(lock) {
-            pendingActions += action
+            pendingActions += action to onComplete
             if (connecting) {
                 false
             } else {
@@ -60,33 +65,48 @@ internal object MusicPlaybackController {
         val token = SessionToken(app, ComponentName(app, MusicPlaybackService::class.java))
         val future = MediaController.Builder(app, token).buildAsync()
         future.addListener({
-            val result = runCatching { future.get() }
+            val connection = runCatching { future.get() }
             val queued = synchronized(lock) {
                 connecting = false
-                result.getOrNull()?.let { controller = it }
-                val actions = if (result.isSuccess) pendingActions.toList() else emptyList()
+                connection.getOrNull()?.let { controller = it }
+                val actions = pendingActions.toList()
                 pendingActions.clear()
                 actions
             }
-            result.getOrNull()?.let { ready ->
-                queued.forEach { queuedAction -> runCatching { queuedAction(ready) } }
-            }
+            connection.fold(
+                onSuccess = { ready ->
+                    queued.forEach { (queuedAction, callback) ->
+                        callback(runCatching { queuedAction(ready) })
+                    }
+                },
+                onFailure = { error ->
+                    queued.forEach { (_, callback) -> callback(Result.failure(error)) }
+                }
+            )
         }, app.mainExecutor)
     }
 
-    fun play(context: Context, uri: Uri, title: String) {
-        connect(context) { player ->
+    fun play(context: Context, uri: Uri, title: String, onComplete: (Result<Unit>) -> Unit = {}) {
+        connect(context, { player ->
             val item = MediaItem.Builder().setUri(uri)
                 .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build()
             player.setMediaItem(item)
             player.prepare()
             player.play()
-        }
+        }, onComplete)
     }
 
-    fun playQueue(context: Context, items: List<Pair<Uri, String>>, startIndex: Int = 0) {
-        if (items.isEmpty()) return
-        connect(context) { player ->
+    fun playQueue(
+        context: Context,
+        items: List<Pair<Uri, String>>,
+        startIndex: Int = 0,
+        onComplete: (Result<Unit>) -> Unit = {}
+    ) {
+        if (items.isEmpty()) {
+            onComplete(Result.failure(IllegalArgumentException("La cola está vacía.")))
+            return
+        }
+        connect(context, { player ->
             val mediaItems = items.map { (uri, title) ->
                 MediaItem.Builder().setUri(uri)
                     .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build()
@@ -94,7 +114,7 @@ internal object MusicPlaybackController {
             player.setMediaItems(mediaItems, startIndex.coerceIn(mediaItems.indices), 0L)
             player.prepare()
             player.play()
-        }
+        }, onComplete)
     }
 
     fun pause(context: Context) = connect(context) { it.pause() }
