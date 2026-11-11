@@ -7,6 +7,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
@@ -18,6 +19,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -51,8 +54,30 @@ class MusicPlaybackService : MediaSessionService() {
     }
 }
 
+internal data class MusicPlaybackUiState(
+    val title: String,
+    val artist: String,
+    val isPlaying: Boolean,
+    val hasPrevious: Boolean,
+    val hasNext: Boolean
+)
+
 internal object MusicPlaybackController {
     @Volatile private var controller: MediaController? = null
+    private val _playbackState = MutableStateFlow<MusicPlaybackUiState?>(null)
+    val playbackState: StateFlow<MusicPlaybackUiState?> = _playbackState
+    private val playerListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            val item = player.currentMediaItem
+            _playbackState.value = if (item == null) null else MusicPlaybackUiState(
+                title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { item.mediaId.ifBlank { "Reproduciendo" } },
+                artist = item.mediaMetadata.artist?.toString().orEmpty(),
+                isPlaying = player.isPlaying,
+                hasPrevious = player.hasPreviousMediaItem(),
+                hasNext = player.hasNextMediaItem()
+            )
+        }
+    }
     private val lock = Any()
     private var connecting = false
     private val pendingActions = mutableListOf<Pair<(MediaController) -> Unit, (Result<Unit>) -> Unit>>()
@@ -88,7 +113,11 @@ internal object MusicPlaybackController {
             val connection = runCatching { future.get() }
             val queued = synchronized(lock) {
                 connecting = false
-                connection.getOrNull()?.let { controller = it }
+                connection.getOrNull()?.let { ready ->
+                    controller = ready
+                    ready.addListener(playerListener)
+                    playerListener.onEvents(ready, Player.Events(emptySet()))
+                }
                 val actions = pendingActions.toList()
                 pendingActions.clear()
                 actions
