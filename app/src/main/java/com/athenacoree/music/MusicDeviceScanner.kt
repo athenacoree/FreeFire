@@ -49,7 +49,7 @@ internal object MusicDeviceScanner {
             putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, mediaTypes.map { it.toString() }.toTypedArray())
             putStringArray(ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.MediaColumns.DATE_ADDED))
             putInt(ContentResolver.QUERY_ARG_SORT_DIRECTION, ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
-            putInt(ContentResolver.QUERY_ARG_LIMIT, BATCH_SIZE)
+            putInt(ContentResolver.QUERY_ARG_LIMIT, BATCH_SIZE + 1)
             putInt(ContentResolver.QUERY_ARG_OFFSET, offset)
         }
 
@@ -81,17 +81,19 @@ internal object MusicDeviceScanner {
             }
         }
 
-        if (found.isNotEmpty()) repository.addTracks(found)
+        val hasMore = found.size > BATCH_SIZE
+        val batch = found.take(BATCH_SIZE)
+        if (batch.isNotEmpty()) repository.addTracks(batch)
 
-        val nextOffset = offset + found.size
+        val nextOffset = offset + batch.size
         prefs.edit().putString(FILTER, filterKey).apply()
-        if (found.size == BATCH_SIZE) {
+        if (hasMore) {
             prefs.edit().putInt(OFFSET, nextOffset).apply()
         } else {
             // A completed scan starts again at the newest media next time, so new files are discovered.
             prefs.edit().remove(OFFSET).apply()
         }
-        DeviceScanResult(found.size, found.size == BATCH_SIZE, nextOffset)
+        DeviceScanResult(batch.size, hasMore, nextOffset)
     }
 
     fun resetMediaScan(context: Context) {
