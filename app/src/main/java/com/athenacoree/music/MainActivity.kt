@@ -214,15 +214,18 @@ private fun MusicApp() {
 private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, onLyricsChange: (List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
+    var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("No se pudo leer el archivo.") }
                 .onSuccess { raw -> onLyricsChange(MusicLyricsParser.parse(raw)) }
         }
     }
-    LaunchedEffect(state.mediaId, state.isPlaying, visualMode) {
-        if (visualMode == "karaoke") {
-            while (true) { positionMs = MusicPlaybackController.currentPosition(); delay(if (state.isPlaying) 100L else 350L) }
+    LaunchedEffect(state.mediaId, state.isPlaying) {
+        while (true) {
+            positionMs = MusicPlaybackController.currentPosition()
+            durationMs = MusicPlaybackController.currentDuration()
+            delay(if (state.isPlaying) 250L else 700L)
         }
     }
     val activeIndex = lyrics.indexOfLast { it.timeMs <= positionMs }
@@ -240,6 +243,20 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White) }
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
+                    }
+                }
+                if (durationMs > 0L) {
+                    Slider(
+                        value = positionMs.coerceIn(0L, durationMs).toFloat(),
+                        onValueChange = { positionMs = it.toLong() },
+                        onValueChangeFinished = { MusicPlaybackController.seekTo(positionMs) },
+                        valueRange = 0f..durationMs.toFloat(),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Color(0xFFB7F36B), activeTrackColor = Color(0xFFB7F36B), inactiveTrackColor = Color(0xFF555B66))
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(formatPlaybackTime(positionMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
+                        Text(formatPlaybackTime(durationMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -264,6 +281,11 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         }
     }
 }
+private fun formatPlaybackTime(milliseconds: Long): String {
+    val totalSeconds = milliseconds.coerceAtLeast(0L) / 1000L
+    return "%d:%02d".format(totalSeconds / 60L, totalSeconds % 60L)
+}
+
 @Composable
 private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
