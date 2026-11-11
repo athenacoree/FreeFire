@@ -214,7 +214,6 @@ private fun MusicApp() {
 }
 
 @Composable
-@Composable
 private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
