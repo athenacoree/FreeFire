@@ -24,35 +24,52 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
-    private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var pendingHistoryJob: Job? = null
+    private var pendingHistoryKey: String? = null
     private var lastRecordedItemKey: String? = null
 
-    private fun recordCurrentPlayback(player: Player) {
-        if (!player.isPlaying) return
+    private fun schedulePlaybackHistory(player: Player) {
+        if (!player.isPlaying) {
+            pendingHistoryJob?.cancel()
+            pendingHistoryJob = null
+            pendingHistoryKey = null
+            return
+        }
         val item = player.currentMediaItem ?: return
         val uri = item.localConfiguration?.uri?.toString().orEmpty()
         if (uri.isBlank()) return
         val itemKey = "${player.currentMediaItemIndex}:$uri"
-        if (lastRecordedItemKey == itemKey) return
-        lastRecordedItemKey = itemKey
+        if (itemKey == lastRecordedItemKey || itemKey == pendingHistoryKey) return
+        pendingHistoryJob?.cancel()
+        pendingHistoryKey = itemKey
         val title = item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Audio" }
         val artist = item.mediaMetadata.artist?.toString().orEmpty()
-        historyScope.launch {
-            runCatching {
-                val dao = MusicDatabase.getInstance(applicationContext).libraryDao()
-                val localTrack = dao.findTrackByMediaUri(uri)
-                dao.recordPlayback(
-                    PlaybackHistoryEntity(
-                        id = java.util.UUID.randomUUID().toString(),
-                        trackId = localTrack?.id ?: uri,
-                        title = localTrack?.title ?: title,
-                        artistName = localTrack?.artistName ?: artist
-                    )
-                )
+        pendingHistoryJob = historyScope.launch {
+            try {
+                while (player.isPlaying && player.currentMediaItemIndex >= 0) {
+                    val current = player.currentMediaItem ?: break
+                    val currentUri = current.localConfiguration?.uri?.toString().orEmpty()
+                    val currentKey = "${player.currentMediaItemIndex}:$currentUri"
+                    if (currentKey != itemKey) break
+                    val duration = player.duration
+                    val threshold = if (duration > 0L && duration != C.TIME_UNSET) (duration / 2L).coerceIn(1_000L, 30_000L) else 30_000L
+                    if (player.currentPosition >= threshold) {
+                        val dao = withContext(Dispatchers.IO) { MusicDatabase.getInstance(applicationContext).libraryDao() }
+                        withContext(Dispatchers.IO) {
+                            val localTrack = dao.findTrackByMediaUri(uri)
+                            dao.recordPlayback(PlaybackHistoryEntity(id = java.util.UUID.randomUUID().toString(), trackId = localTrack?.id ?: uri, title = localTrack?.title ?: title, artistName = localTrack?.artistName ?: artist))
+                        }
+                        lastRecordedItemKey = itemKey
+                        break
+                    }
+                    delay(1_000L)
+                }
+            } finally {
+                if (pendingHistoryKey == itemKey) { pendingHistoryKey = null; pendingHistoryJob = null }
             }
         }
     }
-
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build().apply {
@@ -68,17 +85,18 @@ class MusicPlaybackService : MediaSessionService() {
         }
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) {
-                    MusicEqualizerController.attach(player.audioSessionId)
-                    recordCurrentPlayback(player)
-                }
+                if (isPlaying) MusicEqualizerController.attach(player.audioSessionId)
+                schedulePlaybackHistory(player)
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) MusicEqualizerController.attach(player.audioSessionId)
             }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                pendingHistoryJob?.cancel()
+                pendingHistoryJob = null
+                pendingHistoryKey = null
                 lastRecordedItemKey = null
-                recordCurrentPlayback(player)
+                schedulePlaybackHistory(player)
             }
         })
         MusicEqualizerController.attach(player.audioSessionId)
@@ -94,7 +112,8 @@ class MusicPlaybackService : MediaSessionService() {
         }
         mediaSession = null
         MusicEqualizerController.release()
-        historyScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        pendingHistoryJob?.cancel()
+        historyScope.coroutineContext[Job]?.cancel()
         MusicPlaybackController.release()
         super.onDestroy()
     }
