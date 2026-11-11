@@ -29,6 +29,23 @@ data class LocalTrackEntity(
     val addedAt: Long = System.currentTimeMillis()
 )
 
+
+@Entity(tableName = "playback_history", indices = [Index(value = ["trackId"]), Index(value = ["playedAt"])])
+data class PlaybackHistoryEntity(
+    @PrimaryKey val id: String,
+    val trackId: String,
+    val title: String,
+    val artistName: String = "",
+    val playedAt: Long = System.currentTimeMillis()
+)
+
+data class PlaybackStat(
+    val trackId: String,
+    val title: String,
+    val artistName: String,
+    val playCount: Int
+)
+
 @Entity(tableName = "catalog_entries", indices = [Index(value = ["kind"]), Index(value = ["updatedAt"])])
 data class CatalogEntryEntity(@PrimaryKey val id: String, val kind: String, val title: String, val subtitle: String = "", val imagePath: String? = null, val provider: String? = null, val providerId: String? = null, val mediaPath: String? = null, val version: Long = 1, val updatedAt: String = "")
 
@@ -80,6 +97,18 @@ interface MusicLibraryDao {
     suspend fun deleteTrack(trackId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun recordPlayback(item: PlaybackHistoryEntity)
+
+    @Query("SELECT COUNT(*) FROM playback_history")
+    fun observePlaybackCount(): Flow<Int>
+
+    @Query("SELECT * FROM playback_history ORDER BY playedAt DESC LIMIT 5")
+    fun observeRecentPlayback(): Flow<List<PlaybackHistoryEntity>>
+
+    @Query("SELECT trackId, title, artistName, COUNT(*) AS playCount FROM playback_history GROUP BY trackId, title, artistName ORDER BY playCount DESC LIMIT 5")
+    fun observeMostPlayed(): Flow<List<PlaybackStat>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun savePlaylist(playlist: LocalPlaylistEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -116,8 +145,8 @@ interface MusicLibraryDao {
 }
 
 @Database(
-    entities = [LocalTrackEntity::class, LocalPlaylistEntity::class, LocalPlaylistTrackEntity::class, CatalogEntryEntity::class],
-    version = 2,
+    entities = [LocalTrackEntity::class, LocalPlaylistEntity::class, LocalPlaylistTrackEntity::class, CatalogEntryEntity::class, PlaybackHistoryEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -131,6 +160,13 @@ abstract class MusicDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_catalog_entries_updatedAt ON catalog_entries(updatedAt)")
             }
         }
+        private val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS playback_history (id TEXT NOT NULL PRIMARY KEY, trackId TEXT NOT NULL, title TEXT NOT NULL, artistName TEXT NOT NULL, playedAt INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playback_history_trackId ON playback_history(trackId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playback_history_playedAt ON playback_history(playedAt)")
+            }
+        }
         @Volatile private var INSTANCE: MusicDatabase? = null
 
         fun getInstance(context: Context): MusicDatabase =
@@ -139,7 +175,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     context.applicationContext,
                     MusicDatabase::class.java,
                     "music-library.db"
-                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
             }
     }
 }
