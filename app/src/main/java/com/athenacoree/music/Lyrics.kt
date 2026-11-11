@@ -29,3 +29,26 @@ internal object MusicLyricsParser {
         return result.sortedBy { it.timeMs }
     }
 }
+
+internal object MusicLyricsStorage {
+    private const val PREFS = "music_lyrics"
+
+    private fun key(mediaId: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(mediaId.toByteArray(Charsets.UTF_8))
+        return "lrc_" + digest.joinToString("") { "%02x".format(it) }
+    }
+
+    fun save(context: android.content.Context, mediaId: String, source: String) {
+        if (mediaId.isBlank()) return
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+            .edit().putString(key(mediaId), source).apply()
+    }
+
+    fun load(context: android.content.Context, mediaId: String): List<MusicLyricsLine> {
+        if (mediaId.isBlank()) return emptyList()
+        val source = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+            .getString(key(mediaId), null) ?: return emptyList()
+        return MusicLyricsParser.parse(source)
+    }
+}
