@@ -245,7 +245,13 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         while (true) {
             durationMs = MusicPlaybackController.currentDuration()
             if (!isSeeking) positionMs = MusicPlaybackController.currentPosition()
-            delay(if (visualMode == "karaoke" && state.isPlaying) 100L else 450L)
+            delay(
+                when {
+                    !state.isPlaying -> 1_000L
+                    visualMode == "karaoke" -> 180L
+                    else -> 700L
+                }
+            )
         }
     }
     fun timeLabel(value: Long): String {
@@ -526,8 +532,10 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 Text("Escuchado recientemente", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                val recentTracks = recentPlayback.mapNotNull { entry -> localTracks.firstOrNull { it.id == entry.trackId } }
-                    .distinctBy { it.id }
+                val localTracksById = remember(localTracks) { localTracks.associateBy { it.id } }
+                val recentTracks = remember(recentPlayback, localTracksById) {
+                    recentPlayback.mapNotNull { entry -> localTracksById[entry.trackId] }.distinctBy { it.id }
+                }
                 if (recentTracks.isEmpty()) {
                     Text("Tus canciones aparecerán aquí cuando empieces a reproducirlas.", color = colors.muted, fontSize = 11.sp)
                 } else {
@@ -671,7 +679,7 @@ private fun LibraryScreen(
     val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var scanStatus by rememberSaveable { mutableStateOf("Primero se importan 5 archivos; luego puedes continuar por tandas.") }
+    var scanStatus by rememberSaveable { mutableStateOf("La exploración importa hasta 100 archivos por tanda.") }
     val scanPermissions = if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO) else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     val scanLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         if (grants.values.any { it }) {
@@ -688,7 +696,7 @@ private fun LibraryScreen(
                 }.onSuccess { result ->
                     showFeedback("Biblioteca actualizada correctamente.", MusicFeedbackType.SUCCESS)
                     scanStatus = if (result.imported == 0) "No quedan más archivos multimedia con los permisos concedidos." else
-                        "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes importar los siguientes cinco." else "Exploración completada."
+                        "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes continuar con la siguiente tanda." else "Exploración completada."
                 }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}"; showFeedback("No se pudo explorar la biblioteca. Revisa los permisos e inténtalo de nuevo.", MusicFeedbackType.ERROR) }
             }
         } else {
@@ -702,30 +710,35 @@ private fun LibraryScreen(
     ) { uris ->
         if (uris.isNotEmpty()) scope.launch {
             showFeedback("Añadiendo ${uris.size} archivo(s)…", MusicFeedbackType.LOADING)
-            var imported = 0
+            val importedTracks = mutableListOf<LocalTrackEntity>()
             uris.forEach { uri ->
                 runCatching {
                     context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     val displayName = context.contentResolver.query(
                         uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
                     )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "Archivo de audio"
-                    repository.addTrack(LocalTrackEntity(
+                    importedTracks += LocalTrackEntity(
                         id = uri.toString(),
                         title = displayName.substringBeforeLast('.', displayName),
                         mediaUri = uri.toString(),
                         source = "device"
-                    ))
-                }.onSuccess { imported++ }
+                    )
+                }
             }
-            if (imported > 0) showFeedback("$imported archivo(s) añadido(s) a tu biblioteca.", MusicFeedbackType.SUCCESS)
-            else showFeedback("No se pudieron añadir los archivos seleccionados.", MusicFeedbackType.ERROR)
+            if (importedTracks.isNotEmpty()) {
+                runCatching { repository.addTracks(importedTracks) }
+                    .onSuccess { showFeedback("${importedTracks.size} archivo(s) añadido(s) a tu biblioteca.", MusicFeedbackType.SUCCESS) }
+                    .onFailure { showFeedback("No se pudieron guardar los archivos seleccionados.", MusicFeedbackType.ERROR) }
+            } else showFeedback("No se pudieron añadir los archivos seleccionados.", MusicFeedbackType.ERROR)
         }
     }
 
     val baseTracks = if (filter == "Favoritos") favorites else tracks
-    val visibleTracks = baseTracks.filter {
-        searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) ||
-            it.artistName.contains(searchQuery, ignoreCase = true)
+    val visibleTracks = remember(baseTracks, searchQuery) {
+        baseTracks.filter {
+            searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) ||
+                it.artistName.contains(searchQuery, ignoreCase = true)
+        }
     }
 
     LazyColumn(
@@ -794,10 +807,10 @@ private fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("Exploración inteligente", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("Music lee canciones y vídeos en tandas de cinco, para no cargar toda la biblioteca de golpe.", color = colors.muted, fontSize = 12.sp)
+                Text("Music explora hasta 100 canciones y vídeos por tanda para acelerar la importación sin cargar toda la biblioteca de una vez.", color = colors.muted, fontSize = 12.sp)
                 Text(scanStatus, color = colors.muted, fontSize = 11.sp)
                 Button(onClick = { scanLauncher.launch(scanPermissions) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Leer los siguientes 5 archivos")
+                    Text("Explorar los siguientes archivos")
                 }
             }
         }
