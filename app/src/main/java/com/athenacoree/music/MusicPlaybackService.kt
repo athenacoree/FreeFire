@@ -134,6 +134,7 @@ internal data class MusicPlaybackUiState(
     val hasNext: Boolean,
     val shuffleEnabled: Boolean,
     val repeatMode: Int,
+    val playbackSpeed: Float,
     val queue: List<MusicQueueItem>
 )
 
@@ -152,6 +153,7 @@ internal object MusicPlaybackController {
             hasNext = player.hasNextMediaItem(),
             shuffleEnabled = player.shuffleModeEnabled,
             repeatMode = player.repeatMode,
+            playbackSpeed = player.playbackParameters.speed,
             queue = (0 until player.mediaItemCount).map { index ->
                 val queuedItem = player.getMediaItemAt(index)
                 MusicQueueItem(
@@ -282,6 +284,9 @@ internal object MusicPlaybackController {
     fun removeQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) player.removeMediaItem(index) }
     fun clearQueue(context: Context) = connect(context) { it.clearMediaItems() }
     fun toggleShuffle(context: Context) = connect(context) { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+    fun setPlaybackSpeed(context: Context, speed: Float) = connect(context) {
+        it.setPlaybackSpeed(speed.coerceIn(0.5f, 2.0f))
+    }
     fun cycleRepeat(context: Context) = connect(context) { player ->
         player.repeatMode = when (player.repeatMode) {
             Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
