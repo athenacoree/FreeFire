@@ -298,6 +298,13 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!state.artworkUri.isNullOrBlank()) {
+                        SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)))
+                    } else {
+                        Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF343944)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B))
+                        }
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(state.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -373,6 +380,13 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         } else {
             Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(22.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 86.dp)) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!state.artworkUri.isNullOrBlank()) {
+                        SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)))
+                    } else {
+                        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF343944)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B), modifier = Modifier.size(18.dp))
+                        }
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(state.title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
