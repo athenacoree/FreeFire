@@ -262,7 +262,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                 .onSuccess { raw -> MusicLyricsStorage.save(context, state.mediaId, raw); onLyricsChange(state.mediaId, MusicLyricsParser.parse(raw)) }
         }
     }
-    LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics, isSeeking) {
+    LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics, isSeeking, performanceMode) {
         while (true) {
             durationMs = MusicPlaybackController.currentDuration()
             if (!isSeeking) positionMs = MusicPlaybackController.currentPosition()
