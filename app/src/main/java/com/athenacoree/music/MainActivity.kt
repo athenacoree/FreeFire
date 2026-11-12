@@ -405,7 +405,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 28.dp), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(if (visualMode == "lyrics") "LETRA COMPLETA" else "MODO KARAOKE", color = Color(0xFFB7F36B), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            Text(if (showFullLyrics) "LETRA COMPLETA" else "MODO KARAOKE", color = Color(0xFFB7F36B), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                             Text(state.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(state.artist, color = Color(0xFF9CA3AF), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
