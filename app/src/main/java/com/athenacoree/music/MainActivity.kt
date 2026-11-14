@@ -830,10 +830,10 @@ private fun LibraryScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var trackPendingRemoval by remember { mutableStateOf<LocalTrackEntity?>(null) }
     val filters = listOf("Todo", "Favoritos")
-    val libraryTracks by remember(searchQuery, filter) {
+    val visibleTracks by remember(searchQuery, filter) {
         if (filter == "Favoritos") repository.searchFavorites(searchQuery) else repository.search(searchQuery)
     }.collectAsState(initial = null as List<LocalTrackEntity>?)
-    val libraryTracks = libraryTracks.orEmpty()
+    val libraryTracks = visibleTracks.orEmpty()
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     val mostPlayed by repository.mostPlayed.collectAsState(initial = emptyList())
     val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
