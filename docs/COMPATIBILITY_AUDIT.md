@@ -31,11 +31,11 @@
 4. Coil was upgraded to 3.x; migrated both Compose image import and the custom ImageLoader imports, and added the Ktor network fetcher.
 5. Media scanner required both audio and video permissions before scanning anything. It now proceeds with whichever Android 13+ media permission was granted and uses MediaStore query arguments for five-item paging on API 26+.
 6. Playback commands issued while MediaController was connecting could be dropped. They are now queued until the controller is ready.
-7. Supabase catalog summary downloaded all IDs and could undercount at the PostgREST row cap. It now requests exact counts.
+7. Supabase catalog summary could undercount at the PostgREST row cap. It now pages through ID-only queries to count every row.
 8. Catalog synchronization previously fetched each table in one request and could silently stop at the server row cap. It now pages in 500-row ranges.
-9. UI hid Supabase Auth, catalog, and notification errors. It now surfaces a shortened underlying error message for diagnosis.
+9. UI feedback now maps playback and remote-service failures to clear recovery guidance instead of exposing raw technical errors.
 10. Remote Supabase migration history was missing the repository's seventh Music migration. Applied `music_playlist_notifications` and verified both notification triggers.
-11. RLS was enabled on all ten Music tables, but the `anon` database role still had unnecessary table-level privileges on private Music tables. Revoked those privileges and verified they are false; authenticated access remains granted and RLS-scoped.
+11. RLS was enabled on all twelve Music tables, but the `anon` database role still had unnecessary table-level privileges on private Music tables. Revoked those privileges and verified they are false; authenticated access remains granted and RLS-scoped.
 12. Room catalog relationship queries now have indexes for artistId and albumId, with a version 4→5 migration that preserves existing local records.
 13. Public share pages now include Open Graph metadata and a browser fallback. Android deep links route `music://share/<token>` into a shared-content view.
 14. Public sharing now covers catalog artists, albums, tracks, videos, collaborative playlists and local playlists. Local playlist shares contain metadata only; device audio files are not uploaded.
@@ -44,7 +44,7 @@
 ## Backend verification
 - Supabase project URL matches the app BuildConfig.
 - App key matches the project's active publishable key (not a secret/service-role key).
-- All ten Music tables have RLS enabled.
+- All twelve Music tables have RLS enabled.
 - Public catalog tables are readable by anon/authenticated under read-only RLS policies.
 - Anonymous role has no table-level SELECT privileges on Music profiles, playlists, playlist members/items, device tokens, or notifications.
 - Authenticated role retains playlist SELECT privilege; row access remains constrained by RLS.
