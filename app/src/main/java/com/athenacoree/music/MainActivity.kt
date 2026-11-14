@@ -678,7 +678,7 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
             FeaturedCard(colors) { onExplore("video") }
         }
         item {
-            SectionHeader("Tu actividad musical", "Biblioteca", colors)
+            SectionHeader("Tu actividad musical", colors)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MiniCollection("Reproducciones", playbackCount.toString(), "♫", colors, Modifier.weight(1f))
@@ -708,7 +708,7 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
             }
         }
         item {
-            SectionHeader("Explora tu biblioteca", "Abrir", colors)
+            SectionHeader("Explora tu biblioteca", colors)
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 LibraryShortcut("Artistas", "Organiza por intérprete", Icons.Default.Person, colors) { onExplore("artist") }
@@ -766,14 +766,13 @@ private fun FeaturedCard(colors: MusicColors, onExplore: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, action: String, colors: MusicColors) {
+private fun SectionHeader(title: String, colors: MusicColors) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(title, color = colors.text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Text(action, color = colors.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
