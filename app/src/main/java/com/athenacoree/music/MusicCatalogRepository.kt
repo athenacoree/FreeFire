@@ -1,6 +1,7 @@
 package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -15,10 +16,10 @@ internal data class CatalogSummary(
 
 /**
  * Checks the public catalog without downloading every complete record.
- * The summary is capped to a generous sample so the profile screen stays light.
+ * The summary counts every row through small ID-only pages.
  */
 internal object MusicCatalogRepository {
-    private const val SUMMARY_LIMIT = 1000L
+    private const val PAGE_SIZE = 500L
 
     suspend fun loadSummary(): CatalogSummary {
         return CatalogSummary(
@@ -30,12 +31,18 @@ internal object MusicCatalogRepository {
     }
 
     private suspend fun countRows(table: String): Int {
-        return MusicSupabase.client
-            .from(table)
-            .select {
-                limit(count = SUMMARY_LIMIT)
-            }
-            .decodeList<CatalogId>()
-            .size
+        var offset = 0L
+        var total = 0
+        while (true) {
+            val page = MusicSupabase.client.from(table).select {
+                order(column = "id", order = Order.ASCENDING)
+                range(offset..(offset + PAGE_SIZE - 1))
+            }.decodeList<CatalogId>()
+            if (page.isEmpty()) break
+            total += page.size
+            if (page.size < PAGE_SIZE) break
+            offset += page.size
+        }
+        return total
     }
 }
