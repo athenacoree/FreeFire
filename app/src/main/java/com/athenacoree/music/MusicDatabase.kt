@@ -138,7 +138,7 @@ interface MusicLibraryDao {
     @Query("SELECT * FROM catalog_entries WHERE kind = :kind ORDER BY title COLLATE NOCASE")
     fun observeCatalog(kind: String): Flow<List<CatalogEntryEntity>>
 
-    @Query("SELECT * FROM catalog_entries WHERE instr(lower(title), lower(:query)) > 0 OR instr(lower(subtitle), lower(:query)) > 0 ORDER BY kind, title COLLATE NOCASE")
+    @Query("SELECT * FROM catalog_entries WHERE :query != \"\" AND (instr(lower(title), lower(:query)) > 0 OR instr(lower(subtitle), lower(:query)) > 0) ORDER BY kind, title COLLATE NOCASE")
     fun searchCatalog(query: String): Flow<List<CatalogEntryEntity>>
 
     @Query("SELECT * FROM catalog_entries WHERE kind = :kind ORDER BY title COLLATE NOCASE")
