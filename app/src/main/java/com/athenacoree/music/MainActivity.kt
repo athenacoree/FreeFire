@@ -140,7 +140,6 @@ private data class MusicFeedback(val message: String, val type: MusicFeedbackTyp
 private fun friendlyMusicError(message: String): String {
     val clean = message.trim().ifBlank { "No hemos podido completar esta acción." }
     val softened = clean
-        .replaceFirst("No se pudo", "No hemos podido")
         .replaceFirst("No se pudieron", "No hemos podido")
         .replaceFirst("No se pudo", "No hemos podido")
     return if (softened.endsWith(".")) "$softened Puedes intentarlo de nuevo en unos momentos."
@@ -1126,6 +1125,10 @@ private fun LibraryScreen(
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Compartir archivo de audio"))
+                            }.onSuccess {
+                                showFeedback("Archivo preparado para compartir.", MusicFeedbackType.SUCCESS)
+                            }.onFailure {
+                                showFeedback("No hemos podido preparar este archivo para compartir.", MusicFeedbackType.ERROR)
                             }
                         }
                     }, enabled = !track.mediaUri.isNullOrBlank()) {
@@ -1387,6 +1390,12 @@ private fun CatalogBrowserScreen(
                                     context.startActivity(Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link)
                                     }.let { Intent.createChooser(it, "Compartir vídeo") })
+                                }.onSuccess {
+                                    showFeedback("Enlace de vídeo preparado para compartir.", MusicFeedbackType.SUCCESS)
+                                }.onFailure {
+                                    showFeedback("No se pudo preparar el enlace de vídeo.", MusicFeedbackType.ERROR)
+                                } else {
+                                    showFeedback("Este vídeo todavía no tiene un enlace disponible.", MusicFeedbackType.INFO)
                                 }
                             }) { Text("Compartir", color = colors.accent, fontSize = 11.sp) }
                         }
