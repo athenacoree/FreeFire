@@ -16,7 +16,7 @@ internal object MusicPreferences {
     private val PERFORMANCE_MODE = stringPreferencesKey("performance_mode")
 
     fun darkMode(context: Context): Flow<Boolean> =
-        context.musicDataStore.data.map { preferences -> preferences[DARK_MODE] ?: false }
+        context.musicDataStore.data.map { preferences -> preferences[DARK_MODE] ?: true }
 
     fun dataSaver(context: Context): Flow<Boolean> =
         context.musicDataStore.data.map { preferences -> preferences[DATA_SAVER] ?: false }
