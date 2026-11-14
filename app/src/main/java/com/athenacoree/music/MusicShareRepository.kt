@@ -78,7 +78,8 @@ internal object MusicShareRepository {
         description: String,
         tracks: List<LocalTrackEntity>
     ): String {
-        val safeTracks = tracks.take(200).map { track ->
+        require(tracks.size <= 200) { "Puedes compartir listas de hasta 200 canciones. Divide esta lista en dos para compartirla." }
+        val safeTracks = tracks.map { track ->
             MusicLocalPlaylistShareTrack(
                 id = track.id.take(80),
                 title = track.title.take(180),
