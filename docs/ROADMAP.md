@@ -35,3 +35,11 @@
 - [x] Deploy the secured Supabase push Edge Function.\n- [ ] Configure Firebase service-account and webhook secrets, then connect the Database Webhook.
 - [x] Add signed-in in-app notification inbox.
 - [ ] Add FCM device-token registration, notification channels and deep-link routing after Firebase app configuration is supplied.
+## Recent implementation updates
+- [x] Make the Home artist, album and song shortcuts navigate to the corresponding catalog category.
+- [x] Remove inactive section actions that looked clickable but did nothing.
+- [x] Add cross-category catalog search.
+- [x] Add artist and album detail views backed by persisted artist/album relationships in Room schema version 4.
+- [x] Surface playback errors in the player and expose a retry action.
+- [x] Count all remote catalog rows using paged ID-only requests instead of a capped sample.
+- [x] Set the premium dark theme as the first-run appearance while preserving the light-theme switch.
