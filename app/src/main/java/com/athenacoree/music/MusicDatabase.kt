@@ -46,7 +46,7 @@ data class PlaybackStat(
     val playCount: Int
 )
 
-@Entity(tableName = "catalog_entries", indices = [Index(value = ["kind"]), Index(value = ["updatedAt"])])
+@Entity(tableName = "catalog_entries", indices = [Index(value = ["kind"]), Index(value = ["updatedAt"]), Index(value = ["artistId"]), Index(value = ["albumId"])])
 data class CatalogEntryEntity(@PrimaryKey val id: String, val kind: String, val title: String, val subtitle: String = "", val imagePath: String? = null, val provider: String? = null, val providerId: String? = null, val mediaPath: String? = null, val version: Long = 1, val updatedAt: String = "", val artistId: String? = null, val albumId: String? = null)
 
 @Entity(tableName = "local_playlists")
@@ -193,7 +193,7 @@ interface MusicLibraryDao {
 
 @Database(
     entities = [LocalTrackEntity::class, LocalPlaylistEntity::class, LocalPlaylistTrackEntity::class, CatalogEntryEntity::class, PlaybackHistoryEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -220,6 +220,12 @@ abstract class MusicDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE catalog_entries ADD COLUMN albumId TEXT")
             }
         }
+        private val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_catalog_entries_artistId ON catalog_entries(artistId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_catalog_entries_albumId ON catalog_entries(albumId)")
+            }
+        }
         @Volatile private var INSTANCE: MusicDatabase? = null
 
         fun getInstance(context: Context): MusicDatabase =
@@ -228,7 +234,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     context.applicationContext,
                     MusicDatabase::class.java,
                     "music-library.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { INSTANCE = it }
             }
     }
 }
