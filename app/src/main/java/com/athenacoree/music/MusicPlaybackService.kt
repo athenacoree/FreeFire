@@ -138,7 +138,8 @@ internal data class MusicPlaybackUiState(
     val shuffleEnabled: Boolean,
     val repeatMode: Int,
     val playbackSpeed: Float,
-    val queue: List<MusicQueueItem>
+    val queue: List<MusicQueueItem>,
+    val playbackError: String?
 )
 
 internal object MusicPlaybackController {
@@ -158,6 +159,9 @@ internal object MusicPlaybackController {
             shuffleEnabled = player.shuffleModeEnabled,
             repeatMode = player.repeatMode,
             playbackSpeed = player.playbackParameters.speed,
+            playbackError = player.playerError?.let { error ->
+                error.message?.take(180)?.ifBlank { error.errorCodeName } ?: error.errorCodeName
+            },
             queue = (0 until player.mediaItemCount).map { index ->
                 val queuedItem = player.getMediaItemAt(index)
                 MusicQueueItem(
@@ -286,6 +290,10 @@ internal object MusicPlaybackController {
     fun seekTo(positionMs: Long) { controller?.seekTo(positionMs.coerceAtLeast(0L)) }
 
     fun resume(context: Context) = connect(context) { it.play() }
+    fun retry(context: Context, onComplete: (Result<Unit>) -> Unit = {}) = connect(context, { player ->
+        player.prepare()
+        player.play()
+    }, onComplete)
     fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
     fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
     fun playQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) { player.seekToDefaultPosition(index); player.play() } }
