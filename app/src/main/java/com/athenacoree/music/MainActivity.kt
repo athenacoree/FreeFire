@@ -118,6 +118,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -334,7 +335,7 @@ private fun MusicApp(sharedToken: String? = null) {
                                     )
                                     Text(sharedContent?.description.orEmpty().ifBlank { "Descubre este contenido en Music." },
                                         color = colors.muted, fontSize = 12.sp)
-                                    if (sharedContent?.type == "playlist") {
+                                    if (sharedContent?.type == "playlist" || sharedContent?.type == "local_playlist") {
                                         sharedContent?.tracks.orEmpty().forEachIndexed { index, track ->
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp))
@@ -1802,10 +1803,36 @@ private fun PlaylistManagerScreen(
                 verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.PlaylistPlay, contentDescription = null, tint = colors.accent)
                 Spacer(Modifier.width(10.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(list.name, color = colors.text, fontWeight = FontWeight.SemiBold)
                     Text(list.description.ifBlank { "Lista local" }, color = colors.muted, fontSize = 11.sp)
                 }
+                TextButton(onClick = {
+                    scope.launch {
+                        showFeedback("Preparando enlace de tu lista…", MusicFeedbackType.LOADING)
+                        val tokenResult = runCatching {
+                            val playlistTracks = repository.playlistTracks(list.id).first()
+                            withContext(Dispatchers.IO) {
+                                MusicShareRepository.createLocalPlaylist(list.name, list.description, playlistTracks)
+                            }
+                        }
+                        tokenResult.onSuccess { token ->
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, MusicShareRepository.publicUrl(token))
+                            }
+                            runCatching {
+                                context.startActivity(Intent.createChooser(send, "Compartir lista local"))
+                            }.onSuccess {
+                                showFeedback("Tu lista está lista para compartir. Solo se comparte su información, no los archivos de audio.", MusicFeedbackType.SUCCESS)
+                            }.onFailure {
+                                showFeedback("El enlace se creó, pero no se pudo abrir el menú para compartir.", MusicFeedbackType.ERROR)
+                            }
+                        }.onFailure {
+                            showFeedback("No hemos podido crear el enlace de esta lista. Inténtalo de nuevo.", MusicFeedbackType.ERROR)
+                        }
+                    }
+                }) { Text("Compartir", color = colors.accent, fontSize = 10.sp) }
             }
         }
         item {
