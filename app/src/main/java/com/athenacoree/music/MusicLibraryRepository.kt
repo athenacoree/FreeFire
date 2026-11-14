@@ -34,6 +34,8 @@ internal class MusicLibraryRepository(
 
     fun catalog(kind: String): Flow<List<CatalogEntryEntity>> = dao.observeCatalog(kind)
 
+    fun searchCatalog(query: String): Flow<List<CatalogEntryEntity>> = dao.searchCatalog(query)
+
     internal val databaseDao: MusicLibraryDao get() = dao
 
     suspend fun recordPlayback(track: LocalTrackEntity) = dao.recordPlayback(
