@@ -157,7 +157,7 @@ private fun MusicApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val saveableStateHolder = rememberSaveableStateHolder()
-    val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = false)
+    val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = true)
     val performanceMode by MusicPreferences.performanceMode(context).collectAsState(initial = "balanced")
     val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
@@ -183,13 +183,13 @@ private fun MusicApp() {
 
     val colors = if (darkMode) {
         MusicColors(
-            background = Color(0xFF101116),
-            surface = Color(0xFF1B1D25),
-            surfaceAlt = Color(0xFF252833),
-            text = Color(0xFFF5F5F7),
-            muted = Color(0xFFA6A9B5),
-            accent = Color(0xFFB7F36B),
-            accentText = Color(0xFF17200D)
+            background = Color(0xFF090B12),
+            surface = Color(0xFF151925),
+            surfaceAlt = Color(0xFF20283A),
+            text = Color(0xFFF5F3FF),
+            muted = Color(0xFFA6A4B8),
+            accent = Color(0xFFB69CFF),
+            accentText = Color(0xFF211A35)
         )
     } else {
         MusicColors(
@@ -198,7 +198,7 @@ private fun MusicApp() {
             surfaceAlt = Color(0xFFE9EDF2),
             text = Color(0xFF171A20),
             muted = Color(0xFF737B88),
-            accent = Color(0xFF5B8E31),
+            accent = Color(0xFF7654C8),
             accentText = Color.White
         )
     }
@@ -330,7 +330,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)))
                     } else {
                         Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF343944)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B))
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB69CFF))
                         }
                     }
                     Column(modifier = Modifier.weight(1f)) {
@@ -378,7 +378,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     listOf("normal" to "Normal", "karaoke" to "Karaoke", "lyrics" to "Letra", "minimal" to "Minimal").forEach { (mode, label) ->
                         val selected = visualMode == mode
                         Surface(color = if (selected) Color(0xFFB7F36B) else Color(0xFF343944), shape = RoundedCornerShape(30.dp), modifier = Modifier.clickable { onVisualModeChange(mode) }) {
-                            Text(label, color = if (selected) Color(0xFF17200D) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            Text(label, color = if (selected) Color(0xFF211A35) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                     Spacer(Modifier.weight(1f))
@@ -735,7 +735,7 @@ private fun FeaturedCard(colors: MusicColors, onExplore: () -> Unit) {
             .clip(RoundedCornerShape(26.dp))
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF314A24), Color(0xFF6B923B), Color(0xFFB5D47B))
+                    listOf(Color(0xFF30224F), Color(0xFF644B9A), Color(0xFF9A82D0))
                 )
             )
             .padding(22.dp)
