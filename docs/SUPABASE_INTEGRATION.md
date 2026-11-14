@@ -17,6 +17,7 @@ Music tables are isolated by name in the shared project:
 - Public catalog: `artists`, `albums`, `tracks`, `videos`.
 - User data: `music_profiles`, `playlists`, `playlist_members`, `playlist_items`.
 - Notifications: `push_devices`, `notifications`.
+- Public sharing: `music_share_links`, `music_shared_local_playlists`.
 
 All Music tables have Row Level Security enabled. Public catalog tables permit read-only access to `anon` and `authenticated`; user data is restricted to authenticated users by ownership or playlist membership. Playlist authorization helpers live in the non-exposed `private` schema.
 
@@ -28,7 +29,7 @@ The app's connection check reads row IDs from the four public catalog tables. Ca
 
 ## Migrations
 
-The seven Music migration files are stored in `supabase/migrations`. The remote database had the first six Music migrations recorded; the missing `music_playlist_notifications` migration has now been applied to the shared project and verified in the remote migration history.
+The nine Music migration files are stored in `supabase/migrations`. Migrations 0008 and 0009 add secure public share tokens and metadata-only sharing for local playlists; both are applied to the shared project. The public `music-share` Edge Function serves Open Graph preview pages and a browser fallback. Android deep links use `music://share/<token>` to open the in-app shared-content view.
 
 ## Security notes
 
@@ -36,3 +37,5 @@ The seven Music migration files are stored in `supabase/migrations`. The remote 
 - RLS is enabled for every Music table in the exposed `public` schema.
 - The database security advisor currently warns that leaked-password protection is disabled. Enable it in Supabase Auth password security settings.
 - The Supabase project is shared with Interaccion; do not drop, rename, or overwrite unrelated tables or policies.
+- Public share tokens are high-entropy random values; only SHA-256 token hashes are stored. Share tables have RLS enabled and no direct anon/authenticated table access; narrowly scoped RPCs resolve the public content.
+- Sharing a local playlist publishes only title/artist/album metadata, never local file URIs or media files.
