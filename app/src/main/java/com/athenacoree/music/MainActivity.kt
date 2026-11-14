@@ -157,14 +157,26 @@ private enum class MusicTab(val label: String, val icon: ImageVector) {
 }
 
 class MainActivity : ComponentActivity() {
+    private val sharedTokenState = mutableStateOf<String?>(null)
+
+    private fun tokenFrom(intent: Intent?): String? =
+        intent?.data?.takeIf { it.scheme == "music" && it.host == "share" }?.lastPathSegment
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MusicApp() }
+        sharedTokenState.value = tokenFrom(intent)
+        setContent { MusicApp(sharedTokenState.value) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        sharedTokenState.value = tokenFrom(intent)
     }
 }
 
 @Composable
-private fun MusicApp() {
+private fun MusicApp(sharedToken: String? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -192,6 +204,27 @@ private fun MusicApp() {
     var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
     var lyricsMediaId by rememberSaveable { mutableStateOf("") }
     var playerVisualMode by rememberSaveable { mutableStateOf("normal") }
+    var sharedContent by remember { mutableStateOf<MusicSharedContent?>(null) }
+    var sharedLoadError by remember { mutableStateOf("") }
+    var showSharedDialog by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sharedToken) {
+        if (!sharedToken.isNullOrBlank()) {
+            sharedContent = null
+            sharedLoadError = ""
+            showSharedDialog = true
+            showFeedback("Abriendo contenido compartido…", MusicFeedbackType.LOADING)
+            val result = runCatching {
+                withContext(Dispatchers.IO) { MusicShareRepository.load(sharedToken) }
+            }
+            result.onSuccess {
+                sharedContent = it
+                showFeedback("Contenido compartido cargado.", MusicFeedbackType.SUCCESS)
+            }.onFailure {
+                sharedLoadError = "Este contenido ya no está disponible. Puede que el enlace haya caducado o se haya desactivado."
+                showFeedback(sharedLoadError, MusicFeedbackType.ERROR)
+            }
+        }
+    }
     LaunchedEffect(playbackState?.mediaId) { lyricsLines = emptyList() }
     val tab = MusicTab.valueOf(selectedTab)
 
@@ -281,6 +314,70 @@ private fun MusicApp() {
             }
             MusicMiniPlayer(playbackState, colors, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
             MusicFeedbackBanner(feedback, colors)
+            if (showSharedDialog && !sharedToken.isNullOrBlank()) {
+                AlertDialog(
+                    onDismissRequest = { showSharedDialog = false },
+                    title = {
+                        Text(sharedContent?.title ?: "Contenido compartido", color = colors.text)
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(9.dp)
+                        ) {
+                            when {
+                                sharedContent != null -> {
+                                    Text(
+                                        when (sharedContent?.type) {
+                                            "artist" -> "Artista"
+                                            "album" -> "Álbum"
+                                            "track" -> "Canción"
+                                            "video" -> "Vídeo"
+                                            "playlist" -> "Lista compartida"
+                                            else -> "Contenido de Music"
+                                        },
+                                        color = colors.accent,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(sharedContent?.description.orEmpty().ifBlank { "Descubre este contenido en Music." },
+                                        color = colors.muted, fontSize = 12.sp)
+                                    if (sharedContent?.type == "playlist") {
+                                        sharedContent?.tracks.orEmpty().forEachIndexed { index, track ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp))
+                                                    .background(colors.surfaceAlt).padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text((index + 1).toString(), color = colors.accent, fontSize = 11.sp)
+                                                Spacer(Modifier.width(10.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(track.title, color = colors.text, fontSize = 12.sp,
+                                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(track.artist.ifBlank { "Artista desconocido" }, color = colors.muted, fontSize = 10.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                sharedLoadError.isNotBlank() -> Text(sharedLoadError, color = colors.muted, fontSize = 12.sp)
+                                else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp), color = colors.accent, strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("Estamos cargando los detalles…", color = colors.muted, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showSharedDialog = false }) {
+                            Text("Cerrar", color = colors.accent)
+                        }
+                    }
+                )
+            }
         }
     }
 }
