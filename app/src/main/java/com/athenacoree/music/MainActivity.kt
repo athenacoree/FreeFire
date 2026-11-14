@@ -273,7 +273,11 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("No se pudo leer el archivo.") }
-                .onSuccess { raw -> MusicLyricsStorage.save(context, state.mediaId, raw); onLyricsChange(state.mediaId, MusicLyricsParser.parse(raw)) }
+                .onSuccess { raw ->
+                    val boundedLyrics = raw.take(64 * 1024)
+                    MusicLyricsStorage.save(context, state.mediaId, boundedLyrics)
+                    onLyricsChange(state.mediaId, MusicLyricsParser.parse(boundedLyrics))
+                }
         }
     }
     LaunchedEffect(state.mediaId, state.isPlaying, visualMode, expandedLyrics, isSeeking, performanceMode) {
