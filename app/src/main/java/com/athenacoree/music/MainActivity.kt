@@ -175,7 +175,6 @@ private fun MusicApp(sharedToken: String? = null) {
     val saveableStateHolder = rememberSaveableStateHolder()
     val darkMode by MusicPreferences.darkMode(context).collectAsState(initial = true)
     val performanceMode by MusicPreferences.performanceMode(context).collectAsState(initial = "balanced")
-    val changeTheme: () -> Unit = { scope.launch { MusicPreferences.setDarkMode(context, !darkMode) }; Unit }
     val libraryRepository = remember { MusicLibraryRepository(MusicDatabase.getInstance(context).libraryDao()) }
     val playbackState by MusicPlaybackController.playbackState.collectAsState(initial = null)
     var feedback by remember { mutableStateOf<MusicFeedback?>(null) }
@@ -184,6 +183,14 @@ private fun MusicApp(sharedToken: String? = null) {
             "En este momento hemos tenido un inconveniente. Estamos trabajando para solucionarlo. Puedes volver a intentarlo en unos instantes."
         } else message
         feedback = MusicFeedback(friendlyMessage, type)
+    }
+    val changeTheme: () -> Unit = {
+        val nextDarkMode = !darkMode
+        scope.launch {
+            MusicPreferences.setDarkMode(context, nextDarkMode)
+            showFeedback(if (nextDarkMode) "Modo oscuro guardado." else "Modo claro guardado.", MusicFeedbackType.SUCCESS)
+        }
+        Unit
     }
     LaunchedEffect(feedback) {
         if (feedback != null && feedback?.type != MusicFeedbackType.LOADING) {
@@ -301,7 +308,19 @@ private fun MusicApp(sharedToken: String? = null) {
                         MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback, catalogKind, onKindChange = { catalogKind = it })
                         MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode -> scope.launch { MusicPreferences.setPerformanceMode(context, mode) } }, sleepTimerMinutes = sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
+                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode ->
+                            scope.launch {
+                                MusicPreferences.setPerformanceMode(context, mode)
+                                showFeedback(
+                                    when (mode) {
+                                        "performance" -> "Modo de rendimiento guardado."
+                                        "battery" -> "Modo de ahorro guardado."
+                                        else -> "Modo equilibrado guardado."
+                                    },
+                                    MusicFeedbackType.SUCCESS
+                                )
+                            }
+                        }, sleepTimerMinutes = sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                     }
                 }
             }
@@ -2347,7 +2366,13 @@ private fun ProfileScreen(
             Switch(
                 checked = dataSaver,
                 onCheckedChange = { enabled ->
-                    scope.launch { MusicPreferences.setDataSaver(context, enabled) }
+                    scope.launch {
+                        MusicPreferences.setDataSaver(context, enabled)
+                        showFeedback(
+                            if (enabled) "Ahorro de datos activado." else "Ahorro de datos desactivado.",
+                            MusicFeedbackType.SUCCESS
+                        )
+                    }
                 }
             )
         }
