@@ -327,6 +327,7 @@ private fun MusicApp(sharedToken: String? = null) {
                                             "track" -> "Canción"
                                             "video" -> "Vídeo"
                                             "playlist" -> "Lista compartida"
+                                            "local_playlist" -> "Lista local compartida"
                                             else -> "Contenido de Music"
                                         },
                                         color = colors.accent,
