@@ -1408,23 +1408,32 @@ private fun CatalogBrowserScreen(
                                         .onFailure { showFeedback("No se pudo guardar la canción.", MusicFeedbackType.ERROR) }
                                 }
                             }) { Text("Guardar", color = colors.accent, fontSize = 11.sp) }
-                        } else if (entry.kind == "video") {
-                            TextButton(onClick = {
-                                val link = if (entry.provider.equals("youtube", true) && !entry.providerId.isNullOrBlank())
-                                    "https://www.youtube.com/watch?v=${entry.providerId}" else entry.mediaPath
-                                if (!link.isNullOrBlank()) runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link)
-                                    }.let { Intent.createChooser(it, "Compartir vídeo") })
-                                }.onSuccess {
-                                    showFeedback("Enlace de vídeo preparado para compartir.", MusicFeedbackType.SUCCESS)
-                                }.onFailure {
-                                    showFeedback("No se pudo preparar el enlace de vídeo.", MusicFeedbackType.ERROR)
-                                } else {
-                                    showFeedback("Este vídeo todavía no tiene un enlace disponible.", MusicFeedbackType.INFO)
-                                }
-                            }) { Text("Compartir", color = colors.accent, fontSize = 11.sp) }
                         }
+                        TextButton(onClick = {
+                            scope.launch {
+                                showFeedback("Preparando tu enlace compartible…", MusicFeedbackType.LOADING)
+                                val tokenResult = runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        MusicShareRepository.create(entry.kind, entry.id)
+                                    }
+                                }
+                                tokenResult.onSuccess { token ->
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, MusicShareRepository.publicUrl(token))
+                                    }
+                                    runCatching {
+                                        context.startActivity(Intent.createChooser(shareIntent, "Compartir en Music"))
+                                    }.onSuccess {
+                                        showFeedback("Tu enlace está listo para compartir.", MusicFeedbackType.SUCCESS)
+                                    }.onFailure {
+                                        showFeedback("El enlace se creó, pero no se pudo abrir el menú para compartir.", MusicFeedbackType.ERROR)
+                                    }
+                                }.onFailure {
+                                    showFeedback("No hemos podido crear el enlace. Comprueba tu conexión e inténtalo de nuevo.", MusicFeedbackType.ERROR)
+                                }
+                            }
+                        }) { Text("Compartir", color = colors.accent, fontSize = 11.sp) }
                     }
                 }
             }
@@ -1677,8 +1686,35 @@ private fun PlaylistManagerScreen(
                 Text(list.name, color = colors.text, fontWeight = FontWeight.SemiBold)
                 Text(if (list.isCollaborative) "Colaborativa · ID: ${list.id}" else "Privada · ID: ${list.id}",
                     color = colors.muted, fontSize = 10.sp)
-                TextButton(onClick = { targetPlaylistId = list.id; invitePlaylistId = list.id }) {
-                    Text("Usar esta lista", color = colors.accent, fontSize = 10.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { targetPlaylistId = list.id; invitePlaylistId = list.id }) {
+                        Text("Usar esta lista", color = colors.accent, fontSize = 10.sp)
+                    }
+                    TextButton(onClick = {
+                        scope.launch {
+                            showFeedback("Preparando enlace de tu lista…", MusicFeedbackType.LOADING)
+                            val tokenResult = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    MusicShareRepository.create("playlist", list.id)
+                                }
+                            }
+                            tokenResult.onSuccess { token ->
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, MusicShareRepository.publicUrl(token))
+                                }
+                                runCatching {
+                                    context.startActivity(Intent.createChooser(shareIntent, "Compartir lista"))
+                                }.onSuccess {
+                                    showFeedback("Tu lista ya tiene un enlace para compartir.", MusicFeedbackType.SUCCESS)
+                                }.onFailure {
+                                    showFeedback("El enlace se creó, pero no se pudo abrir el menú para compartir.", MusicFeedbackType.ERROR)
+                                }
+                            }.onFailure {
+                                showFeedback("No hemos podido compartir esta lista. Comprueba que tienes permisos de edición.", MusicFeedbackType.ERROR)
+                            }
+                        }
+                    }) { Text("Compartir", color = colors.accent, fontSize = 10.sp) }
                 }
             }
         }
