@@ -1,20 +1,28 @@
-name: Android test build (signed debug APK)
+name: Android signed debug verification
 
 on:
-  # Deliberately manual while the app is under active development.
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/src/main/java/com/athenacoree/music/**"
+      - "app/build.gradle.kts"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/android-compile.yml"
 
 concurrency:
-  group: android-build-${{ github.ref }}
+  group: android-debug-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  assemble-test:
+  assemble-debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -32,17 +40,14 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK packages
-        run: |
-          sdkmanager --list --channel=3 | grep -E "platforms;android-37\\.0"
-          sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
 
-      - name: Build test APK (debug)
+      - name: Build signed debug APK (no artifact upload)
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
-      - name: Upload signed test APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Music-test-debug-APK
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
-          if-no-files-found: error
+      - name: Verify debug APK signature
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          echo "Debug APK built and signature verified. No artifact was uploaded."
