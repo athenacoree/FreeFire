@@ -613,7 +613,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, c
                                 itemsIndexed(currentLyrics) { index, line ->
                                     Text(
                                         line.text,
-                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) Color(0xFF293421) else Color.Transparent).clickable { MusicPlaybackController.seekTo((line.timeMs - lyricsOffsetMs).coerceAtLeast(0L)) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) colors.accent.copy(alpha = 0.16f) else Color.Transparent).clickable { MusicPlaybackController.seekTo((line.timeMs - lyricsOffsetMs).coerceAtLeast(0L)) }.padding(horizontal = 14.dp, vertical = 12.dp),
                                         color = if (index == activeIndex) colors.accent else colors.muted,
                                         fontSize = if (index == activeIndex) 19.sp else 15.sp,
                                         fontWeight = if (index == activeIndex) FontWeight.Bold else FontWeight.Normal,
@@ -625,7 +625,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, c
                         }
                     } else {
                         Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(previousLine?.text.orEmpty(), color = Color(0xFF646D7B), fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
+                            Text(previousLine?.text.orEmpty(), color = colors.muted, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
                             Spacer(Modifier.height(30.dp))
                             Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa tu archivo .LRC" else "♪", color = colors.accent, fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 34.sp)
                             Spacer(Modifier.height(30.dp))
