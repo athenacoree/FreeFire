@@ -17,6 +17,13 @@ The Android app must remain useful when every remote service is unavailable.
 - Cache management and playback queue.
 - Background playback for authorized media through Android Media3.
 
+### Public sharing
+- Catalog artists, albums, tracks and videos use opaque random share tokens.
+- Collaborative cloud playlists use owner/editor authorization before a public share link is created.
+- Local playlists can be shared as metadata-only snapshots; local file paths and audio bytes are never uploaded.
+- The `music-share` Edge Function serves browser-readable pages with Open Graph metadata for messaging previews.
+- The Android app registers `music://share/<token>` and loads the shared metadata through a scoped RPC.
+
 ### Supabase
 - Optional account authentication.
 - Shared catalog metadata, profiles and collaborative playlists.
