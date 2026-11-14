@@ -29,7 +29,7 @@ The app's connection check reads row IDs from the four public catalog tables. Ca
 
 ## Migrations
 
-The nine Music migration files are stored in `supabase/migrations`. Migrations 0008 and 0009 add secure public share tokens and metadata-only sharing for local playlists; both are applied to the shared project. The public `music-share` Edge Function serves Open Graph preview pages and a browser fallback. Android deep links use `music://share/<token>` to open the in-app shared-content view.
+The nine repository migration files are stored in `supabase/migrations`. The remote project history also contains an earlier `music_shareable_content_links` migration from prior work. The current repository migrations 0008 and 0009 make the share-link schema reproducible and add metadata-only sharing for local playlists; both have been applied to the shared project. The public `music-share` Edge Function serves Open Graph preview pages and a browser fallback. Android deep links use `music://share/<token>` to open the in-app shared-content view.
 
 ## Security notes
 
