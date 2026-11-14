@@ -18,6 +18,8 @@ internal object MusicSupabase {
             install(Auth) {
                 autoLoadFromStorage = true
                 alwaysAutoRefresh = true
+                scheme = "music"
+                host = "auth-callback"
             }
             install(Postgrest)
         }
