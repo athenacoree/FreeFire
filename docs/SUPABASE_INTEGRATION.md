@@ -22,7 +22,7 @@ All Music tables have Row Level Security enabled. Public catalog tables permit r
 
 ## Current catalog status
 
-The schema and public-read policies are present, but the current production catalog tables contain **zero rows**. This is why a successful connection can still show an empty catalog. Add approved artist, album, track, and video metadata through the trusted catalog-management process before expecting content to appear.
+The schema and public-read policies are present. The latest direct count is **50 artists, 22 videos, 0 albums and 0 tracks**. Artists and videos can therefore appear after synchronization, while album and track sections remain empty until approved metadata is loaded through the trusted catalog-management process.
 
 The app's connection check reads row IDs from the four public catalog tables. Catalog sync stores fetched metadata in Room for offline browsing. The current catalog sync is manual from the Explore tab.
 
