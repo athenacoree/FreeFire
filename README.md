@@ -29,7 +29,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Render no es necesario para iniciar la aplicación ni para sus funciones esenciales.
 
 ## Configuración
-Abre el repositorio en Android Studio compatible con AGP 9.1.1, con JDK 17 y Android SDK 36, y sincroniza Gradle.
+Abre el repositorio en Android Studio compatible con AGP 9.1.1, con JDK 17 y Android SDK 37 (canal preview para compilar), y sincroniza Gradle.
 
 La URL de Supabase y la clave **publishable** están definidas como valores públicos de configuración Android. Una clave publishable está diseñada para clientes móviles y no es una credencial administrativa. Nunca agregues una clave Supabase secret o `service_role` al APK, al repositorio o a GitHub.
 
