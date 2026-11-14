@@ -2,8 +2,15 @@ package com.athenacoree.music
 
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+@Serializable
+private data class MarkMusicNotificationReadParams(
+    @SerialName("p_notification_id") val notificationId: String
+)
 
 @Serializable
 internal data class MusicNotificationDto(
@@ -21,5 +28,13 @@ internal object MusicNotificationRepository {
         return MusicSupabase.client.from("notifications").select()
             .decodeList<MusicNotificationDto>()
             .sortedByDescending { it.createdAt }
+    }
+
+    suspend fun markAsRead(notificationId: String) {
+        require(notificationId.isNotBlank())
+        MusicSupabase.client.postgrest.rpc(
+            "music_mark_notification_read",
+            MarkMusicNotificationReadParams(notificationId)
+        ).decodeAs<Boolean>()
     }
 }
