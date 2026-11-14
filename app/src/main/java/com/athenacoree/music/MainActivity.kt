@@ -1841,6 +1841,9 @@ private fun PlaylistManagerScreen(
                         showFeedback("Preparando enlace de tu lista…", MusicFeedbackType.LOADING)
                         val tokenResult = runCatching {
                             val playlistTracks = repository.playlistTracks(list.id).first()
+                            require(playlistTracks.size <= 200) {
+                                "Esta lista tiene ${playlistTracks.size} canciones. El máximo para compartir es 200; divide la lista y vuelve a intentarlo."
+                            }
                             withContext(Dispatchers.IO) {
                                 MusicShareRepository.createLocalPlaylist(list.name, list.description, playlistTracks)
                             }
@@ -2053,8 +2056,13 @@ private fun ProfileScreen(
     var inboxLoading by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        signedIn = MusicSupabase.client.auth.currentSessionOrNull() != null
         MusicSupabase.client.auth.sessionStatus.collect { status ->
             signedIn = status is SessionStatus.Authenticated
+            if (!signedIn) {
+                inbox = emptyList()
+                inboxStatus = "Inicia sesión para consultar tus notificaciones."
+            }
         }
     }
 
@@ -2133,31 +2141,36 @@ private fun ProfileScreen(
                         if (cleanEmail.isBlank() || !cleanEmail.contains("@") || password.length < 8) {
                             authMessage = "Escribe un correo válido y una contraseña de al menos 8 caracteres."
                         } else if (!authLoading) {
+                            val requestedMode = authMode
                             authLoading = true
                             authMessage = ""
-                            showFeedback(if (authMode == "login") "Iniciando sesión…" else "Creando tu cuenta…", MusicFeedbackType.LOADING)
+                            showFeedback(if (requestedMode == "login") "Iniciando sesión…" else "Creando tu cuenta…", MusicFeedbackType.LOADING)
                             scope.launch {
                                 val result = runCatching {
                                     withContext(Dispatchers.IO) {
-                                        if (authMode == "login") {
-                                            MusicAuthRepository.signIn(cleanEmail, password)
-                                        } else {
-                                            MusicAuthRepository.signUp(cleanEmail, password)
-                                        }
+                                        if (requestedMode == "login") MusicAuthRepository.signIn(cleanEmail, password)
+                                        else MusicAuthRepository.signUp(cleanEmail, password)
                                     }
                                 }
                                 authMessage = result.fold(
                                     onSuccess = {
-                                        if (authMode == "login") "Sesión iniciada correctamente."
-                                        else "Registro enviado. Si se solicita, confirma tu correo antes de iniciar sesión."
+                                        if (requestedMode == "login") "Sesión iniciada correctamente."
+                                        else "Registro enviado. Si tienes activada la confirmación por correo, abre el mensaje de Supabase y confirma tu dirección antes de iniciar sesión."
                                     },
-                                    onFailure = {
-                                        if (authMode == "login") "No hemos podido iniciar sesión. Revisa tus datos y vuelve a intentarlo."
-                                        else "No hemos podido crear tu cuenta. Comprueba los datos e inténtalo de nuevo."
+                                    onFailure = { error ->
+                                        when {
+                                            error.message.orEmpty().contains("already registered", ignoreCase = true) ->
+                                                "Este correo ya tiene una cuenta. Inicia sesión o solicita recuperar la contraseña."
+                                            error.message.orEmpty().contains("Invalid login", ignoreCase = true) ->
+                                                "El correo o la contraseña no son correctos."
+                                            else -> if (requestedMode == "login")
+                                                "No hemos podido iniciar sesión. Revisa tus datos y vuelve a intentarlo."
+                                            else "No hemos podido crear tu cuenta. Comprueba los datos e inténtalo de nuevo."
+                                        }
                                     }
                                 )
                                 if (result.isSuccess) showFeedback(
-                                    if (authMode == "login") "¡Sesión iniciada correctamente!" else "Registro enviado correctamente.",
+                                    if (requestedMode == "login") "¡Sesión iniciada correctamente!" else "Registro enviado correctamente.",
                                     MusicFeedbackType.SUCCESS
                                 ) else showFeedback("No se pudo completar la operación. Revisa tus datos e inténtalo de nuevo.", MusicFeedbackType.ERROR)
                                 authLoading = false
@@ -2175,7 +2188,33 @@ private fun ProfileScreen(
                         }
                     )
                 }
+                if (authMode == "login") {
+                    TextButton(
+                        enabled = !authLoading,
+                        onClick = {
+                            val cleanEmail = email.trim()
+                            if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+                                authMessage = "Escribe tu correo electrónico para enviarte el enlace de recuperación."
+                            } else if (!authLoading) {
+                                authLoading = true
+                                authMessage = ""
+                                scope.launch {
+                                    val result = runCatching {
+                                        withContext(Dispatchers.IO) { MusicAuthRepository.sendPasswordReset(cleanEmail) }
+                                    }
+                                    authMessage = if (result.isSuccess)
+                                        "Si existe una cuenta con ese correo, recibirás un enlace para cambiar tu contraseña."
+                                    else "No se pudo enviar el enlace. Comprueba el correo e inténtalo más tarde."
+                                    if (result.isSuccess) showFeedback("Solicitud de recuperación enviada.", MusicFeedbackType.SUCCESS)
+                                    else showFeedback("No se pudo solicitar la recuperación.", MusicFeedbackType.ERROR)
+                                    authLoading = false
+                                }
+                            }
+                        }
+                    ) { Text("¿Has olvidado tu contraseña?", color = colors.accent) }
+                }
                 TextButton(
+                    enabled = !authLoading,
                     onClick = {
                         authMode = if (authMode == "login") "signup" else "login"
                         authMessage = ""
@@ -2240,11 +2279,17 @@ private fun ProfileScreen(
                         inboxLoading = true
                         showFeedback("Cargando tus notificaciones…", MusicFeedbackType.LOADING)
                         scope.launch {
-                            runCatching { withContext(Dispatchers.IO) { MusicNotificationRepository.loadInbox() } }
-                                .onSuccess { inbox = it; inboxStatus = if (it.isEmpty()) "No hay notificaciones o debes iniciar sesión." else "${it.size} notificación(es)" }
-                                .onFailure { inboxStatus = "No hemos podido cargar tus notificaciones. Puedes volver a intentarlo más tarde." }
-                            if (inboxStatus.startsWith("No se pudo")) showFeedback("No se pudieron cargar las notificaciones.", MusicFeedbackType.ERROR)
-                            else showFeedback("Bandeja actualizada.", MusicFeedbackType.SUCCESS)
+                            val result = runCatching {
+                                withContext(Dispatchers.IO) { MusicNotificationRepository.loadInbox() }
+                            }
+                            result.onSuccess {
+                                inbox = it
+                                inboxStatus = if (it.isEmpty()) "No tienes notificaciones nuevas." else "${it.size} notificación(es)"
+                                showFeedback("Bandeja actualizada.", MusicFeedbackType.SUCCESS)
+                            }.onFailure {
+                                inboxStatus = "No hemos podido cargar tus notificaciones. Puedes volver a intentarlo más tarde."
+                                showFeedback("No se pudieron cargar las notificaciones.", MusicFeedbackType.ERROR)
+                            }
                             inboxLoading = false
                         }
                     }
@@ -2256,6 +2301,24 @@ private fun ProfileScreen(
                     .background(colors.surfaceAlt).padding(11.dp)) {
                     Text(notification.title, color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     Text(notification.body, color = colors.muted, fontSize = 11.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (notification.readAt == null) "Sin leer" else "Leída",
+                            color = if (notification.readAt == null) colors.accent else colors.muted,
+                            fontSize = 9.sp, modifier = Modifier.weight(1f))
+                        if (notification.readAt == null && signedIn) {
+                            TextButton(onClick = {
+                                scope.launch {
+                                    val result = runCatching {
+                                        withContext(Dispatchers.IO) { MusicNotificationRepository.markAsRead(notification.id) }
+                                    }
+                                    if (result.isSuccess) {
+                                        inbox = inbox.map { if (it.id == notification.id) it.copy(readAt = java.time.Instant.now().toString()) else it }
+                                        showFeedback("Notificación marcada como leída.", MusicFeedbackType.SUCCESS)
+                                    } else showFeedback("No se pudo actualizar esta notificación.", MusicFeedbackType.ERROR)
+                                }
+                            }) { Text("Marcar leída", color = colors.accent, fontSize = 10.sp) }
+                        }
+                    }
                     Text(notification.createdAt, color = colors.muted, fontSize = 9.sp)
                 }
             }
