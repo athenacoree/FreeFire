@@ -30,6 +30,13 @@ internal object MusicAuthRepository {
         MusicSupabase.client.auth.resetPasswordForEmail(email.trim())
     }
 
+    suspend fun updatePassword(newPassword: String) {
+        require(newPassword.length >= 8) { "La contraseña debe tener al menos 8 caracteres." }
+        MusicSupabase.client.auth.updateUser {
+            password = newPassword
+        }
+    }
+
     suspend fun signOut() {
         MusicSupabase.client.auth.signOut()
     }
