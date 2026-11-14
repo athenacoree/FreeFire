@@ -25,6 +25,11 @@ internal object MusicAuthRepository {
         }
     }
 
+    suspend fun sendPasswordReset(email: String) {
+        require(email.isNotBlank() && email.contains("@")) { "Escribe un correo válido." }
+        MusicSupabase.client.auth.resetPasswordForEmail(email.trim())
+    }
+
     suspend fun signOut() {
         MusicSupabase.client.auth.signOut()
     }
