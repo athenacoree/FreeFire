@@ -1,4 +1,4 @@
-# Compatibility and backend audit — 10 November 2026
+# Compatibility and backend audit — 13 November 2026
 
 ## Target platform
 - Minimum Android: API 26 (Android 8.0).
@@ -36,6 +36,10 @@
 9. UI hid Supabase Auth, catalog, and notification errors. It now surfaces a shortened underlying error message for diagnosis.
 10. Remote Supabase migration history was missing the repository's seventh Music migration. Applied `music_playlist_notifications` and verified both notification triggers.
 11. RLS was enabled on all ten Music tables, but the `anon` database role still had unnecessary table-level privileges on private Music tables. Revoked those privileges and verified they are false; authenticated access remains granted and RLS-scoped.
+12. Room catalog relationship queries now have indexes for artistId and albumId, with a version 4→5 migration that preserves existing local records.
+13. Public share pages now include Open Graph metadata and a browser fallback. Android deep links route `music://share/<token>` into a shared-content view.
+14. Public sharing now covers catalog artists, albums, tracks, videos, collaborative playlists and local playlists. Local playlist shares contain metadata only; device audio files are not uploaded.
+15. Added repository migrations for public share links and metadata-only local playlist shares; both were applied to the existing Supabase project.
 
 ## Backend verification
 - Supabase project URL matches the app BuildConfig.
@@ -47,6 +51,9 @@
 - Migration `music_playlist_notifications` is recorded remotely.
 - Invitation and track-added notification triggers exist on the intended tables.
 - Latest direct row count: 50 artists, 22 videos, 0 albums and 0 tracks. Artists/videos can populate after sync; albums/tracks need approved metadata.
+- `music_share_links` and `music_shared_local_playlists` have RLS enabled and no direct client table access; public resolution is through narrowly scoped security-definer RPCs.
+- Edge Function `music-share` is active at version 3 with public GET pages, Open Graph previews, and playlist track summaries.
+- Share RPC smoke checks returned the expected artist and local-playlist metadata; temporary test links were revoked and test playlist metadata was deleted.
 - Supabase security advisor warning remains: leaked-password protection is disabled. Enable it in Supabase Auth password security settings.
 - Performance advisor reports 16 unused indexes across the shared project (including Interaccion and newly created Music tables). They are not being removed: usage is not yet representative, and dropping shared-project indexes could harm Interaccion.
 
