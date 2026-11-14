@@ -17,6 +17,23 @@ private data class GetMusicSharedContentParams(
 )
 
 @Serializable
+internal data class MusicLocalPlaylistShareTrack(
+    val id: String,
+    val title: String,
+    val artist: String = "",
+    val album: String = "",
+    @SerialName("duration_ms") val durationMs: Long? = null,
+    @SerialName("content_type") val contentType: String = "audio"
+)
+
+@Serializable
+private data class CreateLocalPlaylistShareParams(
+    @SerialName("p_title") val title: String,
+    @SerialName("p_description") val description: String,
+    @SerialName("p_tracks") val tracks: List<MusicLocalPlaylistShareTrack>
+)
+
+@Serializable
 internal data class MusicSharedTrack(
     val id: String,
     val title: String,
@@ -53,6 +70,27 @@ internal object MusicShareRepository {
         return MusicSupabase.client.postgrest.rpc(
             "create_music_share_link",
             CreateMusicShareLinkParams(resourceType, resourceId)
+        ).decodeAs<String>()
+    }
+
+    suspend fun createLocalPlaylist(
+        title: String,
+        description: String,
+        tracks: List<LocalTrackEntity>
+    ): String {
+        val safeTracks = tracks.take(200).map { track ->
+            MusicLocalPlaylistShareTrack(
+                id = track.id.take(80),
+                title = track.title.take(180),
+                artist = track.artistName.take(120),
+                album = track.albumTitle.take(120),
+                durationMs = track.durationMs,
+                contentType = if (track.source == "device-video") "video" else "audio"
+            )
+        }
+        return MusicSupabase.client.postgrest.rpc(
+            "create_music_local_playlist_share",
+            CreateLocalPlaylistShareParams(title.trim(), description.trim().take(500), safeTracks)
         ).decodeAs<String>()
     }
 
