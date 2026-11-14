@@ -1378,7 +1378,7 @@ private fun CatalogBrowserScreen(
                 ) {
                     Text(
                         if (isArtist) detail.subtitle.ifBlank { "Perfil del artista" }
-                        else "Álbum · \${detail.subtitle.ifBlank { "Artista no indicado" }}",
+                        else "Álbum · ${detail.subtitle.ifBlank { "Artista no indicado" }}",
                         color = colors.muted,
                         fontSize = 12.sp
                     )
