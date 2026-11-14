@@ -1478,7 +1478,8 @@ private fun PlaylistManagerScreen(
     repository: MusicLibraryRepository,
     showFeedback: (String, MusicFeedbackType) -> Unit
 ) {
-    val localLists by repository.playlists.collectAsState(initial = emptyList())
+    val localLists by repository.playlists.collectAsState(initial = null as List<LocalPlaylistEntity>?)
+    val loadedLists = localLists.orEmpty()
     val localTracks by repository.tracks.collectAsState(initial = emptyList())
     val favoriteTracks by repository.favorites.collectAsState(initial = emptyList())
     val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
@@ -1576,8 +1577,8 @@ private fun PlaylistManagerScreen(
             }
         }
         item { Text("En este dispositivo", color = colors.text, fontWeight = FontWeight.Bold, fontSize = 17.sp) }
-        if (localLists.isNotEmpty() && localTracks.isNotEmpty()) {
-            item { Text("Añadir canciones a «${localLists.first().name}»", color = colors.muted, fontSize = 12.sp) }
+        if (loadedLists.isNotEmpty() && localTracks.isNotEmpty()) {
+            item { Text("Añadir canciones a «${loadedLists.first().name}»", color = colors.muted, fontSize = 12.sp) }
             items(localTracks, key = { "local-track-${it.id}" }) { track ->
                 Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(colors.surface).padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically) {
@@ -1587,7 +1588,7 @@ private fun PlaylistManagerScreen(
                     }
                     TextButton(onClick = {
                         scope.launch {
-                            runCatching { repository.addToPlaylist(localLists.first().id, track.id) }
+                            runCatching { repository.addToPlaylist(loadedLists.first().id, track.id) }
                                 .onSuccess { message = "Canción añadida a tu lista local."; showFeedback("Canción añadida a la lista.", MusicFeedbackType.SUCCESS) }
                                 .onFailure { showFeedback("No se pudo añadir la canción a la lista.", MusicFeedbackType.ERROR) }
                         }
@@ -1595,8 +1596,10 @@ private fun PlaylistManagerScreen(
                 }
             }
         }
-        if (localLists.isEmpty()) item { Text("Aún no tienes listas locales.", color = colors.muted, fontSize = 12.sp) }
-        items(localLists, key = { it.id }) { list ->
+        if (localLists == null) {
+            items(3) { CatalogEntrySkeleton(colors) }
+        } else if (loadedLists.isEmpty()) item { Text("Aún no tienes listas locales.", color = colors.muted, fontSize = 12.sp) }
+        items(loadedLists, key = { it.id }) { list ->
             Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(colors.surface).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.PlaylistPlay, contentDescription = null, tint = colors.accent)
