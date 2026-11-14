@@ -37,7 +37,7 @@ La URL de Supabase y la clave **publishable** están definidas como valores púb
 El workflow de GitHub Actions es manual (`workflow_dispatch`): solo compila `:app:assembleDebug` si alguien lo inicia expresamente y publica un APK debug como artefacto `Music-test-debug-APK`. No se ejecuta al actualizar `main` y no genera un AAB de producción.
 
 ## Estado del catálogo
-Las tablas de artistas, álbumes, canciones y vídeos ya existen y tienen RLS/políticas de lectura pública. En este momento están vacías; la app podrá conectarse correctamente, pero no mostrará contenido hasta que se carguen metadatos aprobados en el catálogo.
+Las tablas de artistas, álbumes, canciones y vídeos ya existen y tienen RLS/políticas de lectura pública. Revisión actual: 50 artistas, 22 vídeos, 0 álbumes y 0 canciones. Por tanto, la sección de vídeos y artistas puede mostrar metadatos tras sincronizar; el catálogo de álbumes y canciones seguirá vacío hasta cargar registros aprobados.
 
 ## Restricciones de contenido
 La reproducción en segundo plano y las descargas se limitan a archivos que el usuario posea o tenga permiso de utilizar. Los vídeos de YouTube se abren mediante el reproductor oficial; no se extrae, descarga ni reproduce su audio en segundo plano.
