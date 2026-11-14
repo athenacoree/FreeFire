@@ -34,7 +34,7 @@ Abre el repositorio en Android Studio compatible con AGP 9.1.1, con JDK 17 y And
 La URL de Supabase y la clave **publishable** están definidas como valores públicos de configuración Android. Una clave publishable está diseñada para clientes móviles y no es una credencial administrativa. Nunca agregues una clave Supabase secret o `service_role` al APK, al repositorio o a GitHub.
 
 ## Construcción de APK
-El workflow de GitHub Actions compila ` :app:assembleDebug ` al actualizar `main` y publica un APK de prueba firmado en el artefacto `Music-test-debug-APK`. No genera un AAB de producción.
+El workflow de GitHub Actions es manual (`workflow_dispatch`): solo compila `:app:assembleDebug` si alguien lo inicia expresamente y publica un APK debug como artefacto `Music-test-debug-APK`. No se ejecuta al actualizar `main` y no genera un AAB de producción.
 
 ## Estado del catálogo
 Las tablas de artistas, álbumes, canciones y vídeos ya existen y tienen RLS/políticas de lectura pública. En este momento están vacías; la app podrá conectarse correctamente, pero no mostrará contenido hasta que se carguen metadatos aprobados en el catálogo.
