@@ -104,7 +104,7 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
             CatalogEntryEntity(
                 item.id, "album", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
-                version = item.version, updatedAt = item.updatedAt
+                version = item.version, updatedAt = item.updatedAt, artistId = item.artistId
             )
         })
         val tracks = syncPages<TrackDto>(table = "tracks", toEntry = { item ->
