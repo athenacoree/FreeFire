@@ -140,15 +140,6 @@ private fun findActiveLyricIndex(lines: List<MusicLyricsLine>, positionMs: Long)
 private enum class MusicFeedbackType { SUCCESS, ERROR, INFO, LOADING }
 private data class MusicFeedback(val message: String, val type: MusicFeedbackType)
 
-private fun friendlyMusicError(message: String): String {
-    val clean = message.trim().ifBlank { "No hemos podido completar esta acción." }
-    val softened = clean
-        .replaceFirst("No se pudieron", "No hemos podido")
-        .replaceFirst("No se pudo", "No hemos podido")
-    return if (softened.endsWith(".")) "$softened Puedes intentarlo de nuevo en unos momentos."
-    else "$softened. Puedes intentarlo de nuevo en unos momentos."
-}
-
 private enum class MusicTab(val label: String, val icon: ImageVector) {
     Home("Inicio", Icons.Default.Home),
     Library("Biblioteca", Icons.Default.LibraryMusic),
@@ -489,7 +480,8 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, c
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(18.dp))
-                        Text(state.playbackError, color = Color(0xFFFFDAD6), fontSize = 10.sp,
+                        Text("No hemos podido reproducir este contenido. Comprueba que el archivo o la conexión estén disponibles e inténtalo de nuevo.",
+                            color = Color(0xFFFFDAD6), fontSize = 10.sp,
                             modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                         TextButton(onClick = { MusicPlaybackController.retry(context) }) {
                             Text("Reintentar", color = Color(0xFFFFB4AB), fontSize = 10.sp)
