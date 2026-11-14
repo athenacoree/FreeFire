@@ -1213,7 +1213,10 @@ private fun CatalogBrowserScreen(
 ) {
     var syncStatus by rememberSaveable { mutableStateOf("Catálogo guardado en este dispositivo") }
     var syncing by rememberSaveable { mutableStateOf(false) }
+    var catalogQuery by rememberSaveable { mutableStateOf("") }
     val entries by repository.catalog(kind).collectAsState(initial = emptyList())
+    val searchResults by repository.searchCatalog(catalogQuery.trim()).collectAsState(initial = emptyList())
+    val visibleEntries = if (catalogQuery.isBlank()) entries else searchResults
     val localMedia by repository.tracks.collectAsState(initial = emptyList())
     var sourceChoice by remember { mutableStateOf<Pair<CatalogEntryEntity, LocalTrackEntity>?>(null) }
     var selectedDetail by remember { mutableStateOf<CatalogEntryEntity?>(null) }
@@ -1242,6 +1245,14 @@ private fun CatalogBrowserScreen(
                 }
             }
         }
+        OutlinedTextField(
+            value = catalogQuery,
+            onValueChange = { catalogQuery = it },
+            singleLine = true,
+            label = { Text("Buscar artistas, álbumes, canciones o vídeos") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        )
         Button(
             onClick = {
                 if (!syncing) {
