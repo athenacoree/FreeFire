@@ -830,9 +830,10 @@ private fun LibraryScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var trackPendingRemoval by remember { mutableStateOf<LocalTrackEntity?>(null) }
     val filters = listOf("Todo", "Favoritos")
-    val visibleTracks by remember(searchQuery, filter) {
+    val libraryTracks by remember(searchQuery, filter) {
         if (filter == "Favoritos") repository.searchFavorites(searchQuery) else repository.search(searchQuery)
-    }.collectAsState(initial = emptyList())
+    }.collectAsState(initial = null as List<LocalTrackEntity>?)
+    val libraryTracks = libraryTracks.orEmpty()
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     val mostPlayed by repository.mostPlayed.collectAsState(initial = emptyList())
     val recentPlayback by repository.recentPlayback.collectAsState(initial = emptyList())
@@ -968,7 +969,7 @@ private fun LibraryScreen(
                 }
             }
         }
-        if (visibleTracks.any { it.mediaUri != null && it.source != "device-video" }) {
+        if (libraryTracks.any { it.mediaUri != null && it.source != "device-video" }) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(colors.surface).padding(8.dp),
@@ -1005,7 +1006,9 @@ private fun LibraryScreen(
                 }
             }
         }
-        if (visibleTracks.isEmpty()) {
+        if (visibleTracks == null) {
+            items(4) { CatalogEntrySkeleton(colors) }
+        } else if (libraryTracks.isEmpty()) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
@@ -1026,12 +1029,12 @@ private fun LibraryScreen(
         } else {
             item {
                 Text(
-                    "${visibleTracks.size} elemento(s)",
+                    "${libraryTracks.size} elemento(s)",
                     color = colors.muted,
                     fontSize = 12.sp
                 )
             }
-            items(visibleTracks, key = { it.id }) { track ->
+            items(libraryTracks, key = { it.id }) { track ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
                         .background(colors.surface).clickable {
@@ -1052,7 +1055,7 @@ private fun LibraryScreen(
                             } else {
                                 showFeedback("Preparando la reproducción…", MusicFeedbackType.LOADING)
                                 runCatching {
-                                    val audioQueue = visibleTracks.filter { it.mediaUri != null && it.source != "device-video" }
+                                    val audioQueue = libraryTracks.filter { it.mediaUri != null && it.source != "device-video" }
                                         .map { MusicPlaybackItem(Uri.parse(it.mediaUri), it.title, it.artistName, it.albumTitle, it.artworkUri) }
                                     val selectedIndex = audioQueue.indexOfFirst { it.uri == Uri.parse(media) }.coerceAtLeast(0)
                                     MusicPlaybackController.playQueue(context, audioQueue, selectedIndex) { result ->
