@@ -73,6 +73,12 @@ internal class MusicLibraryRepository(
     fun playlistTracks(playlistId: String): Flow<List<LocalTrackEntity>> =
         dao.observePlaylistTracks(playlistId)
 
+    fun catalogByArtist(artistId: String, kind: String): Flow<List<CatalogEntryEntity>> =
+        dao.observeCatalogByArtist(artistId, kind)
+
+    fun catalogByAlbum(albumId: String): Flow<List<CatalogEntryEntity>> =
+        dao.observeCatalogByAlbum(albumId, "track")
+
     suspend fun removeFromPlaylist(playlistId: String, trackId: String) =
         dao.removeTrackFromPlaylist(playlistId, trackId)
 
