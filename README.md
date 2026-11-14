@@ -25,6 +25,9 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Uso como invitado; la cuenta es opcional.
 - Biblioteca local-first: la aplicación sigue funcionando sin conexión.
 - Supabase es el servicio de autenticación, catálogo y listas colaborativas.
+- Enlaces públicos para artistas, álbumes, canciones, vídeos, listas colaborativas y listas locales.
+- Las páginas de contenido compartido incluyen metadatos Open Graph y vista previa para aplicaciones de mensajería; el enlace también puede abrir la app mediante el esquema `music://share/`.
+- Compartir una lista local publica únicamente títulos y metadatos de las pistas; nunca sube los archivos de audio del dispositivo.
 - Music reutiliza el proyecto Supabase compartido con Interaccion, manteniendo las tablas y políticas de Music separadas.
 - Render no es necesario para iniciar la aplicación ni para sus funciones esenciales.
 
@@ -48,6 +51,8 @@ La reproducción en segundo plano y las descargas se limitan a archivos que el u
 - [Autenticación](docs/AUTHENTICATION.md)
 - [Almacenamiento local](docs/LOCAL_STORAGE.md)
 - [Notificaciones push](docs/PUSH_NOTIFICATIONS.md)
+
+Las migraciones `0008_music_share_links.sql` y `0009_local_playlist_sharing.sql` documentan la infraestructura de enlaces compartidos. La función Edge `music-share` genera páginas públicas con vista previa y fallback web.
 - [Auditoría de compatibilidad](docs/COMPATIBILITY_AUDIT.md)
 
 ## Notificaciones push
