@@ -1540,6 +1540,17 @@ private fun CatalogBrowserScreen(
     selectedDetail?.let { detail ->
         val isArtist = detail.kind == "artist"
         val related = if (isArtist) detailTracks + detailVideos else albumTracks
+        val detailArtwork = remember(detail.imagePath, context) {
+            detail.imagePath?.takeIf { it.isNotBlank() }?.let { path ->
+                ImageRequest.Builder(context)
+                    .data(if (path.startsWith("http")) path else
+                        "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/music-artwork/${path.trimStart('/')}")
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(180)
+                    .build()
+            }
+        }
         AlertDialog(
             onDismissRequest = { selectedDetail = null },
             title = { Text(detail.title, color = colors.text) },
@@ -1548,6 +1559,17 @@ private fun CatalogBrowserScreen(
                     modifier = Modifier.fillMaxWidth().height(260.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
+                    if (detailArtwork != null) {
+                        SubcomposeAsyncImage(
+                            model = detailArtwork,
+                            contentDescription = detail.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(16.dp)),
+                            loading = { ArtworkSkeleton(Modifier.fillMaxSize(), colors) },
+                            error = { ArtworkFallback(colors) },
+                            fallback = { ArtworkFallback(colors) }
+                        )
+                    }
                     Text(
                         if (isArtist) detail.subtitle.ifBlank { "Perfil del artista" }
                         else "Álbum · ${detail.subtitle.ifBlank { "Artista no indicado" }}",
@@ -1591,7 +1613,36 @@ private fun CatalogBrowserScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedDetail = null }) { Text("Cerrar", color = colors.accent) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { selectedDetail = null }) {
+                        Text("Cerrar", color = colors.muted)
+                    }
+                    TextButton(onClick = {
+                        scope.launch {
+                            showFeedback("Preparando tu enlace…", MusicFeedbackType.LOADING)
+                            val tokenResult = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    MusicShareRepository.create(detail.kind, detail.id)
+                                }
+                            }
+                            tokenResult.onSuccess { token ->
+                                val send = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, MusicShareRepository.publicUrl(token))
+                                }
+                                runCatching {
+                                    context.startActivity(Intent.createChooser(send, "Compartir en Music"))
+                                }.onSuccess {
+                                    showFeedback("Tu enlace está listo para compartir.", MusicFeedbackType.SUCCESS)
+                                }.onFailure {
+                                    showFeedback("No se pudo abrir el menú para compartir.", MusicFeedbackType.ERROR)
+                                }
+                            }.onFailure {
+                                showFeedback("No hemos podido crear el enlace. Inténtalo de nuevo.", MusicFeedbackType.ERROR)
+                            }
+                        }
+                    }) { Text("Compartir", color = colors.accent) }
+                }
             }
         )
     }
