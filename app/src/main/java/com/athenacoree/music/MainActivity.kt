@@ -664,7 +664,8 @@ private fun MusicTopBar(colors: MusicColors, darkMode: Boolean, onThemeChange: (
 
 @Composable
 private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: MusicLibraryRepository, onExplore: (String) -> Unit) {
-    val recentTracks by repository.recentlyPlayedTracks.collectAsState(initial = emptyList())
+    val recentTracksState by repository.recentlyPlayedTracks.collectAsState(initial = null as List<LocalTrackEntity>?)
+    val recentTracks = recentTracksState.orEmpty()
     val favoriteCount by repository.favoriteCount.collectAsState(initial = 0)
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
     LazyColumn(
@@ -695,7 +696,9 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 Text("Escuchado recientemente", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                if (recentTracks.isEmpty()) {
+                if (recentTracksState == null) {
+                    repeat(3) { CatalogEntrySkeleton(colors) }
+                } else if (recentTracks.isEmpty()) {
                     Text("Tus canciones aparecerán aquí cuando empieces a reproducirlas.", color = colors.muted, fontSize = 11.sp)
                 } else {
                     recentTracks.take(4).forEach { track ->
