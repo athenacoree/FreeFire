@@ -72,6 +72,8 @@ import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -215,7 +217,31 @@ private fun MusicApp() {
         )
     }
 
-    MaterialTheme {
+    val musicColorScheme = if (darkMode) {
+        darkColorScheme(
+            primary = colors.accent,
+            onPrimary = colors.accentText,
+            secondary = colors.accent,
+            background = colors.background,
+            surface = colors.surface,
+            onSurface = colors.text,
+            surfaceVariant = colors.surfaceAlt,
+            onSurfaceVariant = colors.muted
+        )
+    } else {
+        lightColorScheme(
+            primary = colors.accent,
+            onPrimary = colors.accentText,
+            secondary = colors.accent,
+            background = colors.background,
+            surface = colors.surface,
+            onSurface = colors.text,
+            surfaceVariant = colors.surfaceAlt,
+            onSurfaceVariant = colors.muted
+        )
+    }
+
+    MaterialTheme(colorScheme = musicColorScheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = colors.background
