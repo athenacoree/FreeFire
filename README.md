@@ -16,6 +16,7 @@ Aplicación Android nativa para organizar y reproducir música y vídeos autoriz
 - Tema claro y oscuro, seleccionables desde la aplicación.
 - Modos de rendimiento, equilibrado y ahorro persistidos con DataStore; ajustan la frecuencia de actualización visual del reproductor y el karaoke.
 - Control de velocidad de reproducción entre 0,75× y 2× desde el mini reproductor.
+- Reproductor compacto flotante y desplazable dentro de los límites de la pantalla.
 - Mini reproductor flotante compacto que se puede contraer a una barra y volver a expandir.
 - La sesión multimedia transmite título, artista, álbum y portada a los controles multimedia compatibles del sistema.
 - El mini reproductor muestra la portada de la canción actual y conserva título y artista en la sesión multimedia.
