@@ -1408,7 +1408,6 @@ private fun CatalogBrowserScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val dataSaver by MusicPreferences.dataSaver(context).collectAsState(initial = false)
-    val equalizer by MusicEqualizerController.state.collectAsState()
     val kinds = listOf("video" to "Vídeos", "artist" to "Artistas", "album" to "Álbumes", "track" to "Canciones")
 
     Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp)) {
@@ -1507,7 +1506,6 @@ private fun CatalogBrowserScreen(
                                         else "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/music-artwork/${entry.imagePath.trimStart('/')}")
                                     .memoryCachePolicy(CachePolicy.ENABLED)
                                     .diskCachePolicy(CachePolicy.ENABLED)
-                                    .crossfade(180)
                                     .build()
                             }
                             SubcomposeAsyncImage(
@@ -1517,7 +1515,6 @@ private fun CatalogBrowserScreen(
                                 modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
                                 loading = { ArtworkSkeleton(Modifier.fillMaxSize(), colors) },
                                 error = { ArtworkFallback(colors) },
-                                fallback = { ArtworkFallback(colors) }
                             )
                         } else {
                             Box(modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(colors.surfaceAlt),
@@ -1582,7 +1579,6 @@ private fun CatalogBrowserScreen(
                         "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/music-artwork/${path.trimStart('/')}")
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
-                    .crossfade(180)
                     .build()
             }
         }
@@ -1602,7 +1598,6 @@ private fun CatalogBrowserScreen(
                             modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(16.dp)),
                             loading = { ArtworkSkeleton(Modifier.fillMaxSize(), colors) },
                             error = { ArtworkFallback(colors) },
-                            fallback = { ArtworkFallback(colors) }
                         )
                     }
                     Text(
@@ -2067,6 +2062,7 @@ private fun ProfileScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val dataSaver by MusicPreferences.dataSaver(context).collectAsState(initial = false)
+    val equalizer by MusicEqualizerController.state.collectAsState()
     var inbox by remember { mutableStateOf<List<MusicNotificationDto>>(emptyList()) }
     var inboxStatus by rememberSaveable { mutableStateOf("Pulsa para consultar tus notificaciones.") }
     var inboxLoading by rememberSaveable { mutableStateOf(false) }
