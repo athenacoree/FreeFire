@@ -270,6 +270,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     LaunchedEffect(state.mediaId) {
         val saved = MusicLyricsStorage.load(context, state.mediaId)
         if (saved.isNotEmpty()) onLyricsChange(state.mediaId, saved)
+        lyricsOffsetMs = MusicLyricsStorage.loadOffset(context, state.mediaId)
     }
     val lyricsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -505,10 +506,10 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs - 500L).coerceAtLeast(-10_000L) }) { Text("−0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs - 500L).coerceAtLeast(-10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("−0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
                             Text("Ajuste ${if (lyricsOffsetMs >= 0) "+" else ""}${lyricsOffsetMs / 1000.0}s", color = Color(0xFF9CA3AF), fontSize = 10.sp)
-                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs + 500L).coerceAtMost(10_000L) }) { Text("+0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
-                            TextButton(onClick = { lyricsOffsetMs = 0L }) { Text("Reset", color = Color(0xFF9CA3AF), fontSize = 10.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs + 500L).coerceAtMost(10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("+0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = 0L; MusicLyricsStorage.saveOffset(context, state.mediaId, 0L) }) { Text("Reset", color = Color(0xFF9CA3AF), fontSize = 10.sp) }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(22.dp)) {
                             IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(30.dp)) }
