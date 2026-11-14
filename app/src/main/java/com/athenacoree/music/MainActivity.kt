@@ -1693,7 +1693,7 @@ private fun PlaylistManagerScreen(
                         showFeedback("Añadiendo canción a la lista…", MusicFeedbackType.LOADING)
                         runCatching { MusicCloudPlaylistRepository.addTrack(targetPlaylistId.trim(), cloudTrackId.trim()) }
                             .onSuccess { message = "Canción añadida a la lista compartida."; showFeedback("Canción añadida a la lista compartida.", MusicFeedbackType.SUCCESS) }
-                            .onFailure { message = it.message ?: "No se pudo añadir. Debes ser propietario o editor."; showFeedback("No se pudo añadir la canción. Revisa los permisos.", MusicFeedbackType.ERROR) }
+                            .onFailure { message = "No hemos podido añadir la canción. Comprueba que tienes permiso para editar esta lista e inténtalo de nuevo."; showFeedback("No se pudo añadir la canción. Revisa los permisos.", MusicFeedbackType.ERROR) }
                     }
                 }, enabled = targetPlaylistId.isNotBlank() && cloudTrackId.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                     Text("Añadir canción")
@@ -1712,7 +1712,7 @@ private fun PlaylistManagerScreen(
                         showFeedback("Enviando invitación…", MusicFeedbackType.LOADING)
                         runCatching { MusicCloudPlaylistRepository.invite(invitePlaylistId.trim(), inviteUserId.trim(), "editor") }
                             .onSuccess { message = "Colaborador añadido como editor."; showFeedback("Invitación enviada correctamente.", MusicFeedbackType.SUCCESS) }
-                            .onFailure { message = it.message ?: "No se pudo invitar. Comprueba que seas propietario."; showFeedback("No se pudo enviar la invitación.", MusicFeedbackType.ERROR) }
+                            .onFailure { message = "No hemos podido enviar la invitación. Comprueba que eres propietario de la lista e inténtalo de nuevo."; showFeedback("No se pudo enviar la invitación.", MusicFeedbackType.ERROR) }
                     }
                 }, enabled = invitePlaylistId.isNotBlank() && inviteUserId.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                     Text("Invitar como editor")
@@ -1919,9 +1919,8 @@ private fun ProfileScreen(
                                         else "Registro enviado. Si se solicita, confirma tu correo antes de iniciar sesión."
                                     },
                                     onFailure = {
-                                        val detail = it.message?.take(180) ?: "Error desconocido"
-                                        if (authMode == "login") "No se pudo iniciar sesión: $detail"
-                                        else "No se pudo crear la cuenta: $detail"
+                                        if (authMode == "login") "No hemos podido iniciar sesión. Revisa tus datos y vuelve a intentarlo."
+                                        else "No hemos podido crear tu cuenta. Comprueba los datos e inténtalo de nuevo."
                                     }
                                 )
                                 if (result.isSuccess) showFeedback(
