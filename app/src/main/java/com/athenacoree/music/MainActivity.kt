@@ -1278,31 +1278,31 @@ private fun CatalogBrowserScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp)
         ) { Text(if (syncing) "Sincronizando…" else "Actualizar catálogo") }
         Text(syncStatus, color = colors.muted, fontSize = 10.sp, modifier = Modifier.padding(bottom = 8.dp))
-        if (entries.isEmpty() && syncing) {
+        if (visibleEntries.isEmpty() && syncing) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp, bottom = 20.dp)) {
                 repeat(5) { CatalogEntrySkeleton(colors) }
             }
-        } else if (entries.isEmpty()) {
+        } else if (visibleEntries.isEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = 26.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.VideoLibrary, contentDescription = null, tint = colors.accent, modifier = Modifier.size(42.dp))
-                Text("Todavía no hay contenido", color = colors.text, fontWeight = FontWeight.SemiBold)
-                Text("Actualiza el catálogo cuando tengas conexión. Lo sincronizado quedará disponible sin conexión.", color = colors.muted, fontSize = 12.sp)
+                Text(if (catalogQuery.isBlank()) "Todavía no hay contenido" else "No hay resultados", color = colors.text, fontWeight = FontWeight.SemiBold)
+                Text(if (catalogQuery.isBlank()) "Actualiza el catálogo cuando tengas conexión. Lo sincronizado quedará disponible sin conexión." else "Prueba con otro título o nombre de artista.", color = colors.muted, fontSize = 12.sp)
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
-                items(entries, key = { "${kind}-${it.id}" }) { entry ->
+                items(visibleEntries, key = { "${it.kind}-${it.id}" }) { entry ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp))
                             .background(colors.surface).clickable {
-                                if (kind == "artist" || kind == "album") {
+                                if (entry.kind == "artist" || entry.kind == "album") {
                                     selectedDetail = entry
-                                } else if (kind == "video" || kind == "track") {
-                                    val expectedSource = if (kind == "video") "device-video" else "device-audio"
+                                } else if (entry.kind == "video" || entry.kind == "track") {
+                                    val expectedSource = if (entry.kind == "video") "device-video" else "device-audio"
                                     val normalized = normalizeMusicTitle(entry.title)
                                     val match = localMedia.firstOrNull { local ->
                                         val localTitle = normalizeMusicTitle(local.title)
-                                        (local.source == expectedSource || (kind == "track" && local.source == "device")) && localTitle.isNotBlank() &&
+                                        (local.source == expectedSource || (entry.kind == "track" && local.source == "device")) && localTitle.isNotBlank() &&
                                             (localTitle == normalized || localTitle.contains(normalized) || normalized.contains(localTitle)) &&
                                             (entry.subtitle.isBlank() || local.artistName.isBlank() ||
                                                 normalizeMusicTitle(local.artistName).contains(normalizeMusicTitle(entry.subtitle)) ||
@@ -1349,7 +1349,7 @@ private fun CatalogBrowserScreen(
                             Text(entry.title, color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(entry.subtitle.ifBlank { entry.provider ?: "Music" }, color = colors.muted, fontSize = 11.sp, maxLines = 1)
                         }
-                        if (kind == "track") {
+                        if (entry.kind == "track") {
                             TextButton(onClick = {
                                 scope.launch {
                                     runCatching { repository.addTrack(LocalTrackEntity(
@@ -1360,7 +1360,7 @@ private fun CatalogBrowserScreen(
                                         .onFailure { showFeedback("No se pudo guardar la canción.", MusicFeedbackType.ERROR) }
                                 }
                             }) { Text("Guardar", color = colors.accent, fontSize = 11.sp) }
-                        } else if (kind == "video") {
+                        } else if (entry.kind == "video") {
                             TextButton(onClick = {
                                 val link = if (entry.provider.equals("youtube", true) && !entry.providerId.isNullOrBlank())
                                     "https://www.youtube.com/watch?v=${entry.providerId}" else entry.mediaPath
