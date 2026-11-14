@@ -1,6 +1,7 @@
 package com.athenacoree.music
 
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 
@@ -34,7 +35,7 @@ internal object MusicCatalogRepository {
         var offset = 0L
         var total = 0
         while (true) {
-            val page = MusicSupabase.client.from(table).select {
+            val page = MusicSupabase.client.from(table).select(columns = Columns.list("id")) {
                 order(column = "id", order = Order.ASCENDING)
                 range(offset..(offset + PAGE_SIZE - 1))
             }.decodeList<CatalogId>()
