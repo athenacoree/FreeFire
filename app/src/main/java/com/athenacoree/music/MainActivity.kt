@@ -137,6 +137,16 @@ private fun findActiveLyricIndex(lines: List<MusicLyricsLine>, positionMs: Long)
 private enum class MusicFeedbackType { SUCCESS, ERROR, INFO, LOADING }
 private data class MusicFeedback(val message: String, val type: MusicFeedbackType)
 
+private fun friendlyMusicError(message: String): String {
+    val clean = message.trim().ifBlank { "No hemos podido completar esta acción." }
+    val softened = clean
+        .replaceFirst("No se pudo", "No hemos podido")
+        .replaceFirst("No se pudieron", "No hemos podido")
+        .replaceFirst("No se pudo", "No hemos podido")
+    return if (softened.endsWith(".")) "$softened Puedes intentarlo de nuevo en unos momentos."
+    else "$softened. Puedes intentarlo de nuevo en unos momentos."
+}
+
 private enum class MusicTab(val label: String, val icon: ImageVector) {
     Home("Inicio", Icons.Default.Home),
     Library("Biblioteca", Icons.Default.LibraryMusic),
@@ -860,7 +870,7 @@ private fun LibraryScreen(
                     showFeedback("Biblioteca actualizada correctamente.", MusicFeedbackType.SUCCESS)
                     scanStatus = if (result.imported == 0) "No quedan más archivos multimedia con los permisos concedidos." else
                         "Se añadieron ${result.imported} archivos. " + if (result.hasMore) "Puedes continuar con la siguiente tanda." else "Exploración completada."
-                }.onFailure { scanStatus = "No se pudo explorar: ${it.message ?: "error"}"; showFeedback("No se pudo explorar la biblioteca. Revisa los permisos e inténtalo de nuevo.", MusicFeedbackType.ERROR) }
+                }.onFailure { scanStatus = "No hemos podido terminar la exploración. Comprueba los permisos e inténtalo de nuevo; tu música guardada sigue a salvo."; showFeedback("No se pudo explorar la biblioteca. Revisa los permisos e inténtalo de nuevo.", MusicFeedbackType.ERROR) }
             }
         } else {
             scanStatus = "Concede permiso para leer audio o vídeo para continuar."
@@ -1275,7 +1285,7 @@ private fun CatalogBrowserScreen(
                         }
                         syncStatus = result.fold(
                             { "Actualizado: ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
-                            { "Error al sincronizar: ${it.message?.take(180) ?: "error desconocido"}. Se conserva el catálogo descargado anteriormente." }
+                            { "No hemos podido actualizar el catálogo. Tu contenido anterior sigue guardado; puedes volver a intentarlo." }
                         )
                         if (result.isSuccess) showFeedback("Catálogo actualizado correctamente.", MusicFeedbackType.SUCCESS)
                         else showFeedback("No se pudo actualizar el catálogo. Se conserva lo descargado.", MusicFeedbackType.ERROR)
@@ -1542,7 +1552,7 @@ private fun PlaylistManagerScreen(
                         scope.launch {
                             runCatching { MusicCloudPlaylistRepository.create(name, description, true) }
                                 .onSuccess { name = ""; description = ""; message = "Lista colaborativa creada en la nube."; showFeedback("¡Lista colaborativa creada!", MusicFeedbackType.SUCCESS) }
-                                .onFailure { message = it.message ?: "Inicia sesión para crear listas compartidas."; showFeedback("No se pudo crear la lista compartida. Comprueba tu sesión.", MusicFeedbackType.ERROR) }
+                                .onFailure { message = "No hemos podido crear la lista compartida. Comprueba que has iniciado sesión y vuelve a intentarlo."; showFeedback("No se pudo crear la lista compartida. Comprueba tu sesión.", MusicFeedbackType.ERROR) }
                             busy = false
                         }
                     }
@@ -1936,7 +1946,7 @@ private fun ProfileScreen(
                             }
                             cloudStatus = result.fold(
                                 onSuccess = { "Conectado · ${it.artists} artistas · ${it.albums} álbumes · ${it.tracks} canciones · ${it.videos} vídeos" },
-                                onFailure = { "No se pudo conectar: ${it.message?.take(180) ?: "error desconocido"}" }
+                                onFailure = { "No hemos podido conectar ahora mismo. Tu música local sigue disponible; inténtalo de nuevo más tarde." }
                             )
                             if (result.isSuccess) showFeedback("Conexión con el catálogo establecida.", MusicFeedbackType.SUCCESS)
                             else showFeedback("No pudimos conectar con el catálogo. Inténtalo más tarde.", MusicFeedbackType.ERROR)
@@ -1965,7 +1975,7 @@ private fun ProfileScreen(
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) { MusicNotificationRepository.loadInbox() } }
                                 .onSuccess { inbox = it; inboxStatus = if (it.isEmpty()) "No hay notificaciones o debes iniciar sesión." else "${it.size} notificación(es)" }
-                                .onFailure { inboxStatus = "No se pudo cargar la bandeja: ${it.message?.take(160) ?: "error desconocido"}" }
+                                .onFailure { inboxStatus = "No hemos podido cargar tus notificaciones. Puedes volver a intentarlo más tarde." }
                             if (inboxStatus.startsWith("No se pudo")) showFeedback("No se pudieron cargar las notificaciones.", MusicFeedbackType.ERROR)
                             else showFeedback("Bandeja actualizada.", MusicFeedbackType.SUCCESS)
                             inboxLoading = false
