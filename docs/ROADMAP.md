@@ -43,3 +43,4 @@
 - [x] Surface playback errors in the player and expose a retry action.
 - [x] Count all remote catalog rows using paged ID-only requests instead of a capped sample.
 - [x] Set the premium dark theme as the first-run appearance while preserving the light-theme switch.
+- [x] Persist karaoke timing offsets separately for each media item.
