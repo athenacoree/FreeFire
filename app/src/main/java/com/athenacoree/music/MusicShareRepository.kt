@@ -35,6 +35,12 @@ internal data class MusicSharedContent(
     val description: String = "",
     @SerialName("image_path") val imagePath: String? = null,
     @SerialName("is_collaborative") val isCollaborative: Boolean = false,
+    @SerialName("artist_id") val artistId: String? = null,
+    @SerialName("album_id") val albumId: String? = null,
+    @SerialName("duration_ms") val durationMs: Long? = null,
+    @SerialName("content_type") val contentType: String? = null,
+    val provider: String? = null,
+    @SerialName("provider_video_id") val providerVideoId: String? = null,
     val tracks: List<MusicSharedTrack> = emptyList()
 )
 
