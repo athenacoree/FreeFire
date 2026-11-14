@@ -244,14 +244,14 @@ private fun MusicApp() {
                     }
                 }
             }
-            MusicMiniPlayer(playbackState, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
+            MusicMiniPlayer(playbackState, colors, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
             MusicFeedbackBanner(feedback, colors)
         }
     }
 }
 
 @Composable
-private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, performanceMode: String, onVisualModeChange: (String) -> Unit) {
+private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, performanceMode: String, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
     var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
@@ -327,25 +327,25 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
         if (!compactPlayer) {
-        Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
+        Surface(color = colors.surface, shape = RoundedCornerShape(20.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 82.dp)) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!state.artworkUri.isNullOrBlank()) {
                         SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)))
                     } else {
-                        Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF343944)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB69CFF))
+                        Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(colors.surfaceAlt), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = colors.accent)
                         }
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(state.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.title, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = colors.muted, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White) }
-                        IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
-                        IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
-                        TextButton(onClick = { compactPlayer = true }) { Text("−", color = Color(0xFFB6BAC4), fontSize = 18.sp) }
+                        IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = colors.text) }
+                        IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = colors.accent) }
+                        IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = colors.text) }
+                        TextButton(onClick = { compactPlayer = true }) { Text("−", color = colors.muted, fontSize = 18.sp) }
                     }
                 }
                 if (!state.playbackError.isNullOrBlank()) {
@@ -373,20 +373,20 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                             modifier = Modifier.fillMaxWidth()
                         )
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(timeLabel(positionMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
-                            Text(timeLabel(durationMs), color = Color(0xFF9CA3AF), fontSize = 9.sp)
+                            Text(timeLabel(positionMs), color = colors.muted, fontSize = 9.sp)
+                            Text(timeLabel(durationMs), color = colors.muted, fontSize = 9.sp)
                         }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     listOf("normal" to "Normal", "karaoke" to "Karaoke", "lyrics" to "Letra", "minimal" to "Minimal").forEach { (mode, label) ->
                         val selected = visualMode == mode
-                        Surface(color = if (selected) Color(0xFFB7F36B) else Color(0xFF343944), shape = RoundedCornerShape(30.dp), modifier = Modifier.clickable { onVisualModeChange(mode) }) {
-                            Text(label, color = if (selected) Color(0xFF211A35) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                        Surface(color = if (selected) colors.accent else colors.surfaceAlt, shape = RoundedCornerShape(30.dp), modifier = Modifier.clickable { onVisualModeChange(mode) }) {
+                            Text(label, color = if (selected) colors.accentText else colors.text, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    if (visualMode == "karaoke" || visualMode == "lyrics") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = Color(0xFFB7F36B), fontSize = 10.sp) }
+                    if (visualMode == "karaoke" || visualMode == "lyrics") TextButton(onClick = { lyricsPicker.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Abrir .LRC", color = colors.accent, fontSize = 10.sp) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = {
@@ -394,39 +394,39 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         val current = speeds.indexOfFirst { kotlin.math.abs(it - state.playbackSpeed) < 0.02f }
                         MusicPlaybackController.setPlaybackSpeed(context, speeds[(current + 1).mod(speeds.size)])
                     }) {
-                        Text(state.playbackSpeed.toString() + "×", color = Color(0xFFB6BAC4), fontSize = 10.sp)
+                        Text(state.playbackSpeed.toString() + "×", color = colors.muted, fontSize = 10.sp)
                     }
                     TextButton(onClick = { MusicPlaybackController.toggleShuffle(context) }) {
-                        Text(if (state.shuffleEnabled) "Aleatorio: sí" else "Aleatorio", color = if (state.shuffleEnabled) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
+                        Text(if (state.shuffleEnabled) "Aleatorio: sí" else "Aleatorio", color = if (state.shuffleEnabled) colors.accent else colors.muted, fontSize = 10.sp)
                     }
                     TextButton(onClick = { MusicPlaybackController.cycleRepeat(context) }) {
                         val repeatLabel = when (state.repeatMode) { 1 -> "Repetir: una"; 2 -> "Repetir: todo"; else -> "Repetir: no" }
-                        Text(repeatLabel, color = if (state.repeatMode != 0) Color(0xFFB7F36B) else Color(0xFFB6BAC4), fontSize = 10.sp)
+                        Text(repeatLabel, color = if (state.repeatMode != 0) colors.accent else colors.muted, fontSize = 10.sp)
                     }
-                    TextButton(onClick = { showQueue = true }) { Text("Cola · ${state.queue.size}", color = Color(0xFFB6BAC4), fontSize = 10.sp) }
+                    TextButton(onClick = { showQueue = true }) { Text("Cola · ${state.queue.size}", color = colors.muted, fontSize = 10.sp) }
                 }
                 when (visualMode) {
-                    "karaoke" -> Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC para ver la letra" else "La letra comenzará con la canción", color = Color(0xFFB7F36B), fontSize = 17.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
-                        Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Toca para abrir karaoke a pantalla completa", color = Color(0xFF77808E), fontSize = 9.sp)
-                        if (currentLyrics.isEmpty()) Text("Usa letras LRC que tengas guardadas en tu dispositivo.", color = Color(0xFF9CA3AF), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    "karaoke" -> Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(colors.surfaceAlt).clickable { expandedLyrics = true }.padding(horizontal = 14.dp, vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC para ver la letra" else "La letra comenzará con la canción", color = colors.accent, fontSize = 17.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
+                        Text(nextLine?.text.orEmpty(), color = colors.muted, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Toca para abrir karaoke a pantalla completa", color = colors.muted, fontSize = 9.sp)
+                        if (currentLyrics.isEmpty()) Text("Usa letras LRC que tengas guardadas en tu dispositivo.", color = colors.muted, fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     "lyrics" -> Column(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color(0xFF151820)).clickable { expandedLyrics = true; showFullLyrics = true }.padding(horizontal = 14.dp, vertical = 17.dp),
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(colors.surfaceAlt).clickable { expandedLyrics = true; showFullLyrics = true }.padding(horizontal = 14.dp, vertical = 17.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC" else "♪", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 25.sp)
-                        Text("LETRA · toca para ampliar", color = Color(0xFF9CA3AF), fontSize = 9.sp, letterSpacing = 1.sp)
+                        Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa un archivo .LRC" else "♪", color = colors.text, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 25.sp)
+                        Text("LETRA · toca para ampliar", color = colors.muted, fontSize = 9.sp, letterSpacing = 1.sp)
                     }
-                    "minimal" -> Text("♫  " + state.artist.ifBlank { state.title }, color = Color(0xFFB7F36B), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    "minimal" -> Text("♫  " + state.artist.ifBlank { state.title }, color = colors.accent, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
         } else {
             Surface(
-                color = Color(0xFF20232B),
+                color = colors.surface,
                 shape = RoundedCornerShape(22.dp),
                 shadowElevation = 14.dp,
                 modifier = Modifier.width(280.dp)
@@ -441,47 +441,47 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     .padding(vertical = 86.dp)
             ) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("⋮⋮", color = Color(0xFF77808E), fontSize = 13.sp)
+                    Text("⋮⋮", color = colors.muted, fontSize = 13.sp)
                     if (!state.artworkUri.isNullOrBlank()) {
                         SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)))
                     } else {
-                        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF343944)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color(0xFFB7F36B), modifier = Modifier.size(18.dp))
+                        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)).background(colors.surfaceAlt), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
                         }
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(state.title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = Color(0xFFB6BAC4), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.title, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.artist.ifBlank { "Reproduciendo ahora" }, color = colors.muted, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) {
-                        Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = Color(0xFFB7F36B))
+                        Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = colors.accent)
                     }
-                    TextButton(onClick = { compactPlayer = false }) { Text("Expandir", color = Color(0xFFB7F36B), fontSize = 10.sp) }
+                    TextButton(onClick = { compactPlayer = false }) { Text("Expandir", color = colors.accent, fontSize = 10.sp) }
                 }
             }
         }
     }
     if (expandedLyrics && visualMode in setOf("karaoke", "lyrics")) {
         Dialog(onDismissRequest = { expandedLyrics = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(modifier = Modifier.fillMaxSize().padding(0.dp), color = Color(0xFF10131A), shape = RoundedCornerShape(0.dp)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(0.dp), color = colors.background, shape = RoundedCornerShape(0.dp)) {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 28.dp), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(if (showFullLyrics) "LETRA COMPLETA" else "MODO KARAOKE", color = Color(0xFFB7F36B), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                            Text(state.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(state.artist, color = Color(0xFF9CA3AF), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(if (showFullLyrics) "LETRA COMPLETA" else "MODO KARAOKE", color = colors.accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            Text(state.title, color = colors.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(state.artist, color = colors.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(onClick = { showFullLyrics = !showFullLyrics }) {
-                                Text(if (showFullLyrics) "Karaoke" else "Letra completa", color = Color(0xFFB7F36B), fontSize = 11.sp)
+                                Text(if (showFullLyrics) "Karaoke" else "Letra completa", color = colors.accent, fontSize = 11.sp)
                             }
-                            TextButton(onClick = { expandedLyrics = false }) { Text("Cerrar", color = Color(0xFFB7F36B)) }
+                            TextButton(onClick = { expandedLyrics = false }) { Text("Cerrar", color = colors.accent) }
                         }
                     }
                     if (showFullLyrics) {
                         if (currentLyrics.isEmpty()) {
                             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                                Text("Importa un archivo .LRC para mostrar la letra completa.", color = Color(0xFF9CA3AF), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                Text("Importa un archivo .LRC para mostrar la letra completa.", color = colors.muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             }
                         } else {
                             LazyColumn(state = lyricsListState, modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
@@ -489,7 +489,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                                     Text(
                                         line.text,
                                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (index == activeIndex) Color(0xFF293421) else Color.Transparent).clickable { MusicPlaybackController.seekTo((line.timeMs - lyricsOffsetMs).coerceAtLeast(0L)) }.padding(horizontal = 14.dp, vertical = 12.dp),
-                                        color = if (index == activeIndex) Color(0xFFB7F36B) else Color(0xFF8992A0),
+                                        color = if (index == activeIndex) colors.accent else colors.muted,
                                         fontSize = if (index == activeIndex) 19.sp else 15.sp,
                                         fontWeight = if (index == activeIndex) FontWeight.Bold else FontWeight.Normal,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -502,22 +502,22 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(previousLine?.text.orEmpty(), color = Color(0xFF646D7B), fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
                             Spacer(Modifier.height(30.dp))
-                            Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa tu archivo .LRC" else "♪", color = Color(0xFFB7F36B), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 34.sp)
+                            Text(activeLine?.text ?: if (currentLyrics.isEmpty()) "Importa tu archivo .LRC" else "♪", color = colors.accent, fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 34.sp)
                             Spacer(Modifier.height(30.dp))
-                            Text(nextLine?.text.orEmpty(), color = Color(0xFF9CA3AF), fontSize = 17.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
+                            Text(nextLine?.text.orEmpty(), color = colors.muted, fontSize = 17.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 24.sp)
                         }
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs - 500L).coerceAtLeast(-10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("−0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
-                            Text("Ajuste ${if (lyricsOffsetMs >= 0) "+" else ""}${lyricsOffsetMs / 1000.0}s", color = Color(0xFF9CA3AF), fontSize = 10.sp)
-                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs + 500L).coerceAtMost(10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("+0,5 s", color = Color(0xFFB7F36B), fontSize = 11.sp) }
-                            TextButton(onClick = { lyricsOffsetMs = 0L; MusicLyricsStorage.saveOffset(context, state.mediaId, 0L) }) { Text("Reset", color = Color(0xFF9CA3AF), fontSize = 10.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs - 500L).coerceAtLeast(-10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("−0,5 s", color = colors.accent, fontSize = 11.sp) }
+                            Text("Ajuste ${if (lyricsOffsetMs >= 0) "+" else ""}${lyricsOffsetMs / 1000.0}s", color = colors.muted, fontSize = 10.sp)
+                            TextButton(onClick = { lyricsOffsetMs = (lyricsOffsetMs + 500L).coerceAtMost(10_000L); MusicLyricsStorage.saveOffset(context, state.mediaId, lyricsOffsetMs) }) { Text("+0,5 s", color = colors.accent, fontSize = 11.sp) }
+                            TextButton(onClick = { lyricsOffsetMs = 0L; MusicLyricsStorage.saveOffset(context, state.mediaId, 0L) }) { Text("Reset", color = colors.muted, fontSize = 10.sp) }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                            IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(30.dp)) }
-                        IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = Color(0xFFB7F36B), modifier = Modifier.size(42.dp)) }
-                        IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(30.dp)) }
+                            IconButton(onClick = { MusicPlaybackController.previous(context) }, enabled = state.hasPrevious) { Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = colors.text, modifier = Modifier.size(30.dp)) }
+                        IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Reproducir o pausar", tint = colors.accent, modifier = Modifier.size(42.dp)) }
+                        IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = colors.text, modifier = Modifier.size(30.dp)) }
                         }
                     }
                 }
@@ -528,14 +528,14 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
         Dialog(onDismissRequest = { showQueue = false }) {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
-                color = Color(0xFF20232B),
+                color = colors.surface,
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Cola de reproducción", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text("${state.queue.size} canciones", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+                            Text("Cola de reproducción", color = colors.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("${state.queue.size} canciones", color = colors.muted, fontSize = 11.sp)
                         }
                         TextButton(onClick = { MusicPlaybackController.clearQueue(context); showQueue = false }) {
                             Text("Vaciar", color = Color(0xFFFF8A80), fontSize = 11.sp)
@@ -550,11 +550,11 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(if (item.isCurrent) "♫" else "${item.index + 1}", color = if (item.isCurrent) Color(0xFFB7F36B) else Color(0xFF9CA3AF), fontSize = 12.sp)
+                                Text(if (item.isCurrent) "♫" else "${item.index + 1}", color = if (item.isCurrent) colors.accent else colors.muted, fontSize = 12.sp)
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.title, color = if (item.isCurrent) Color(0xFFB7F36B) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(item.artist.ifBlank { "Audio" }, color = Color(0xFF9CA3AF), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(item.title, color = if (item.isCurrent) colors.accent else colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(item.artist.ifBlank { "Audio" }, color = colors.muted, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 TextButton(onClick = { MusicPlaybackController.removeQueueItem(context, item.index) }) {
                                     Text("×", color = Color(0xFFFF8A80), fontSize = 20.sp)
@@ -562,7 +562,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                             }
                         }
                     }
-                    TextButton(onClick = { showQueue = false }, modifier = Modifier.align(Alignment.End)) { Text("Cerrar", color = Color(0xFFB7F36B)) }
+                    TextButton(onClick = { showQueue = false }, modifier = Modifier.align(Alignment.End)) { Text("Cerrar", color = colors.accent) }
                 }
             }
         }
