@@ -65,6 +65,23 @@ internal object MusicLyricsStorage {
         return MusicLyricsParser.parse(source)
     }
 
+    fun saveOffset(context: Context, mediaId: String, offsetMs: Long) {
+        if (mediaId.isBlank()) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(offsetStorageKey(mediaId), offsetMs.coerceIn(-10_000L, 10_000L))
+            .apply()
+    }
+
+    fun loadOffset(context: Context, mediaId: String): Long {
+        if (mediaId.isBlank()) return 0L
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getLong(offsetStorageKey(mediaId), 0L)
+            .coerceIn(-10_000L, 10_000L)
+    }
+
+    private fun offsetStorageKey(mediaId: String): String = "offset_" + storageKey(mediaId).removePrefix("lyrics_")
+
     private fun storageKey(mediaId: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(mediaId.toByteArray(Charsets.UTF_8))
