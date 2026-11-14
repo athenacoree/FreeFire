@@ -324,7 +324,7 @@ private fun MusicApp(sharedToken: String? = null) {
                     }
                 }
             }
-            MusicMiniPlayer(playbackState, colors, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
+            MusicMiniPlayer(playbackState, colors, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, showFeedback = showFeedback, onVisualModeChange = { playerVisualMode = it })
             MusicFeedbackBanner(feedback, colors)
             if (showSharedDialog && !sharedToken.isNullOrBlank()) {
                 AlertDialog(
@@ -396,7 +396,7 @@ private fun MusicApp(sharedToken: String? = null) {
 }
 
 @Composable
-private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, performanceMode: String, onVisualModeChange: (String) -> Unit) {
+private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, context: android.content.Context, lyrics: List<MusicLyricsLine>, lyricsMediaId: String, onLyricsChange: (String, List<MusicLyricsLine>) -> Unit, visualMode: String, performanceMode: String, showFeedback: (String, MusicFeedbackType) -> Unit, onVisualModeChange: (String) -> Unit) {
     if (state == null) return
     var positionMs by remember(state.mediaId) { mutableStateOf(0L) }
     var durationMs by remember(state.mediaId) { mutableStateOf(0L) }
@@ -434,8 +434,17 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, colors: MusicColors, c
                 } ?: error("No se pudo leer el archivo.") }
                 .onSuccess { raw ->
                     val boundedLyrics = raw.take(64 * 1024)
+                    val parsedLyrics = MusicLyricsParser.parse(boundedLyrics)
                     MusicLyricsStorage.save(context, state.mediaId, boundedLyrics)
-                    onLyricsChange(state.mediaId, MusicLyricsParser.parse(boundedLyrics))
+                    onLyricsChange(state.mediaId, parsedLyrics)
+                    showFeedback(
+                        if (parsedLyrics.isEmpty()) "El archivo se ha importado, pero no contiene líneas LRC reconocibles."
+                        else "La letra se ha importado correctamente.",
+                        if (parsedLyrics.isEmpty()) MusicFeedbackType.INFO else MusicFeedbackType.SUCCESS
+                    )
+                }
+                .onFailure {
+                    showFeedback("No hemos podido leer la letra. Comprueba el archivo e inténtalo de nuevo.", MusicFeedbackType.ERROR)
                 }
         }
     }
