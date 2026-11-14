@@ -46,7 +46,7 @@
 - Authenticated role retains playlist SELECT privilege; row access remains constrained by RLS.
 - Migration `music_playlist_notifications` is recorded remotely.
 - Invitation and track-added notification triggers exist on the intended tables.
-- Catalog data tables currently contain zero rows: artists, albums, tracks and videos. A successful connection therefore still yields an empty catalog until approved metadata is loaded.
+- Latest direct row count: 50 artists, 22 videos, 0 albums and 0 tracks. Artists/videos can populate after sync; albums/tracks need approved metadata.
 - Supabase security advisor warning remains: leaked-password protection is disabled. Enable it in Supabase Auth password security settings.
 - Performance advisor reports 16 unused indexes across the shared project (including Interaccion and newly created Music tables). They are not being removed: usage is not yet representative, and dropping shared-project indexes could harm Interaccion.
 
