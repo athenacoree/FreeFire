@@ -47,7 +47,7 @@ data class PlaybackStat(
 )
 
 @Entity(tableName = "catalog_entries", indices = [Index(value = ["kind"]), Index(value = ["updatedAt"])])
-data class CatalogEntryEntity(@PrimaryKey val id: String, val kind: String, val title: String, val subtitle: String = "", val imagePath: String? = null, val provider: String? = null, val providerId: String? = null, val mediaPath: String? = null, val version: Long = 1, val updatedAt: String = "")
+data class CatalogEntryEntity(@PrimaryKey val id: String, val kind: String, val title: String, val subtitle: String = "", val imagePath: String? = null, val provider: String? = null, val providerId: String? = null, val mediaPath: String? = null, val version: Long = 1, val updatedAt: String = "", val artistId: String? = null, val albumId: String? = null)
 
 @Entity(tableName = "local_playlists")
 data class LocalPlaylistEntity(
@@ -147,6 +147,12 @@ interface MusicLibraryDao {
     @Query("SELECT * FROM catalog_entries WHERE id IN (:ids)")
     suspend fun getCatalogEntriesByIds(ids: List<String>): List<CatalogEntryEntity>
 
+    @Query("SELECT * FROM catalog_entries WHERE artistId = :artistId AND kind = :kind ORDER BY title COLLATE NOCASE")
+    fun observeCatalogByArtist(artistId: String, kind: String): Flow<List<CatalogEntryEntity>>
+
+    @Query("SELECT * FROM catalog_entries WHERE albumId = :albumId AND kind = :kind ORDER BY title COLLATE NOCASE")
+    fun observeCatalogByAlbum(albumId: String, kind: String): Flow<List<CatalogEntryEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveCatalogEntry(entry: CatalogEntryEntity)
 
@@ -184,7 +190,7 @@ interface MusicLibraryDao {
 
 @Database(
     entities = [LocalTrackEntity::class, LocalPlaylistEntity::class, LocalPlaylistTrackEntity::class, CatalogEntryEntity::class, PlaybackHistoryEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -205,6 +211,12 @@ abstract class MusicDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_playback_history_playedAt ON playback_history(playedAt)")
             }
         }
+        private val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE catalog_entries ADD COLUMN artistId TEXT")
+                db.execSQL("ALTER TABLE catalog_entries ADD COLUMN albumId TEXT")
+            }
+        }
         @Volatile private var INSTANCE: MusicDatabase? = null
 
         fun getInstance(context: Context): MusicDatabase =
@@ -213,7 +225,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     context.applicationContext,
                     MusicDatabase::class.java,
                     "music-library.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
             }
     }
 }
