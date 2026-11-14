@@ -208,6 +208,9 @@ private fun MusicApp(sharedToken: String? = null, passwordRecovery: Boolean = fa
         }
     }
     var selectedTab by rememberSaveable { mutableStateOf(MusicTab.Home.name) }
+    LaunchedEffect(passwordRecovery) {
+        if (passwordRecovery) selectedTab = MusicTab.Profile.name
+    }
     var catalogKind by rememberSaveable { mutableStateOf("video") }
     var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
     var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
