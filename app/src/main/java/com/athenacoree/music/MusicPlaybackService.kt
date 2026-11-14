@@ -289,27 +289,27 @@ internal object MusicPlaybackController {
     fun currentDuration(): Long = controller?.duration?.takeIf { it > 0L && it != C.TIME_UNSET } ?: 0L
     fun seekTo(positionMs: Long) { controller?.seekTo(positionMs.coerceAtLeast(0L)) }
 
-    fun resume(context: Context) = connect(context) { it.play() }
+    fun resume(context: Context) = connect(context, { it.play() })
     fun retry(context: Context, onComplete: (Result<Unit>) -> Unit = {}) = connect(context, { player ->
         player.prepare()
         player.play()
     }, onComplete)
-    fun next(context: Context) = connect(context) { it.seekToNextMediaItem() }
-    fun previous(context: Context) = connect(context) { it.seekToPreviousMediaItem() }
-    fun playQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) { player.seekToDefaultPosition(index); player.play() } }
-    fun removeQueueItem(context: Context, index: Int) = connect(context) { player -> if (index in 0 until player.mediaItemCount) player.removeMediaItem(index) }
-    fun clearQueue(context: Context) = connect(context) { it.clearMediaItems() }
-    fun toggleShuffle(context: Context) = connect(context) { it.shuffleModeEnabled = !it.shuffleModeEnabled }
-    fun setPlaybackSpeed(context: Context, speed: Float) = connect(context) {
+    fun next(context: Context) = connect(context, { it.seekToNextMediaItem() })
+    fun previous(context: Context) = connect(context, { it.seekToPreviousMediaItem() })
+    fun playQueueItem(context: Context, index: Int) = connect(context, { player -> if (index in 0 until player.mediaItemCount) { player.seekToDefaultPosition(index); player.play() } })
+    fun removeQueueItem(context: Context, index: Int) = connect(context, { player -> if (index in 0 until player.mediaItemCount) player.removeMediaItem(index) })
+    fun clearQueue(context: Context) = connect(context, { it.clearMediaItems() })
+    fun toggleShuffle(context: Context) = connect(context, { it.shuffleModeEnabled = !it.shuffleModeEnabled })
+    fun setPlaybackSpeed(context: Context, speed: Float) = connect(context, {
         it.setPlaybackSpeed(speed.coerceIn(0.5f, 2.0f))
-    }
-    fun cycleRepeat(context: Context) = connect(context) { player ->
+    })
+    fun cycleRepeat(context: Context) = connect(context, { player ->
         player.repeatMode = when (player.repeatMode) {
             Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
             Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
             else -> Player.REPEAT_MODE_OFF
         }
-    }
+    })
 
     fun release() {
         synchronized(lock) {
