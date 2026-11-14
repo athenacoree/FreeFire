@@ -164,7 +164,10 @@ private fun MusicApp() {
     val playbackState by MusicPlaybackController.playbackState.collectAsState(initial = null)
     var feedback by remember { mutableStateOf<MusicFeedback?>(null) }
     val showFeedback: (String, MusicFeedbackType) -> Unit = { message, type ->
-        feedback = MusicFeedback(message, type)
+        val friendlyMessage = if (type == MusicFeedbackType.ERROR) {
+            "En este momento hemos tenido un inconveniente. Estamos trabajando para solucionarlo. Puedes volver a intentarlo en unos instantes."
+        } else message
+        feedback = MusicFeedback(friendlyMessage, type)
     }
     LaunchedEffect(feedback) {
         if (feedback != null && feedback?.type != MusicFeedbackType.LOADING) {
@@ -242,7 +245,7 @@ private fun MusicApp() {
                 }
             }
             MusicMiniPlayer(playbackState, context, lyricsLines, lyricsMediaId, onLyricsChange = { mediaId, lines -> lyricsMediaId = mediaId; lyricsLines = lines }, visualMode = playerVisualMode, performanceMode = performanceMode, onVisualModeChange = { playerVisualMode = it })
-            MusicFeedbackBanner(feedback)
+            MusicFeedbackBanner(feedback, colors)
         }
     }
 }
@@ -567,7 +570,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
 }
 
 @Composable
-private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
+private fun MusicFeedbackBanner(feedback: MusicFeedback?, colors: MusicColors) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
         AnimatedVisibility(
             visible = feedback != null,
@@ -583,14 +586,14 @@ private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
                     MusicFeedbackType.INFO -> Color(0xFF397BC8)
                     MusicFeedbackType.LOADING -> Color(0xFF7A69C7)
                 }
-                Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(18.dp), shadowElevation = 12.dp,
+                Surface(color = colors.surface, shape = RoundedCornerShape(18.dp), shadowElevation = 12.dp,
                     modifier = Modifier.fillMaxWidth()) {
                     Row(modifier = Modifier.padding(horizontal = 17.dp, vertical = 15.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (current.type == MusicFeedbackType.LOADING) {
                             androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(23.dp), color = Color.White, strokeWidth = 2.5.dp
+                                modifier = Modifier.size(23.dp), color = colors.accent, strokeWidth = 2.5.dp
                             )
                         } else {
                             Icon(
@@ -602,7 +605,7 @@ private fun MusicFeedbackBanner(feedback: MusicFeedback?) {
                                 contentDescription = null, tint = tint, modifier = Modifier.size(25.dp)
                             )
                         }
-                        Text(current.message, color = Color.White, fontSize = 13.sp,
+                        Text(current.message, color = colors.text, fontSize = 13.sp,
                             fontWeight = FontWeight.Medium, lineHeight = 18.sp)
                     }
                 }
