@@ -22,11 +22,14 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.collectAsState
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +43,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -108,11 +112,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.roundToInt
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 
@@ -249,6 +256,13 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
     var lyricsOffsetMs by rememberSaveable(state.mediaId) { mutableStateOf(0L) }
     var showQueue by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     var compactPlayer by rememberSaveable(state.mediaId) { mutableStateOf(false) }
+    var compactOffsetX by rememberSaveable(state.mediaId) { mutableStateOf(0f) }
+    var compactOffsetY by rememberSaveable(state.mediaId) { mutableStateOf(0f) }
+    val screenConfiguration = LocalConfiguration.current
+    val screenWidthPx = with(LocalDensity.current) { screenConfiguration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(LocalDensity.current) { screenConfiguration.screenHeightDp.dp.toPx() }
+    val compactHorizontalLimit = (screenWidthPx / 2f - with(LocalDensity.current) { 145.dp.toPx() }).coerceAtLeast(0f)
+    val compactVerticalLimit = (screenHeightPx - with(LocalDensity.current) { 200.dp.toPx() }).coerceAtLeast(0f)
     var showFullLyrics by rememberSaveable(state.mediaId) { mutableStateOf(false) }
     val lyricsListState = rememberLazyListState()
     val currentLyrics = if (lyricsMediaId == state.mediaId) lyrics else emptyList()
@@ -378,7 +392,21 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
             }
         }
         } else {
-            Surface(color = Color(0xFF20232B), shape = RoundedCornerShape(22.dp), shadowElevation = 14.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 86.dp)) {
+            Surface(
+                color = Color(0xFF20232B),
+                shape = RoundedCornerShape(22.dp),
+                shadowElevation = 14.dp,
+                modifier = Modifier.width(280.dp)
+                    .offset { IntOffset(compactOffsetX.roundToInt(), compactOffsetY.roundToInt()) }
+                    .pointerInput(state.mediaId) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            compactOffsetX = (compactOffsetX + dragAmount.x).coerceIn(-compactHorizontalLimit, compactHorizontalLimit)
+                            compactOffsetY = (compactOffsetY + dragAmount.y).coerceIn(-compactVerticalLimit, 0f)
+                        }
+                    }
+                    .padding(vertical = 86.dp)
+            ) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!state.artworkUri.isNullOrBlank()) {
                         SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)))
