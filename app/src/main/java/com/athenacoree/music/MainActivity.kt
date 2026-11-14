@@ -125,6 +125,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.roundToInt
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.status.SessionStatus
 
 
@@ -151,25 +152,33 @@ private enum class MusicTab(val label: String, val icon: ImageVector) {
 
 class MainActivity : ComponentActivity() {
     private val sharedTokenState = mutableStateOf<String?>(null)
+    private val passwordRecoveryState = mutableStateOf(false)
 
     private fun tokenFrom(intent: Intent?): String? =
         intent?.data?.takeIf { it.scheme == "music" && it.host == "share" }?.lastPathSegment
 
+    private fun isPasswordRecoveryIntent(intent: Intent?): Boolean =
+        intent?.data?.toString()?.contains("type=recovery", ignoreCase = true) == true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MusicSupabase.client.handleDeeplinks(intent)
         sharedTokenState.value = tokenFrom(intent)
-        setContent { MusicApp(sharedTokenState.value) }
+        passwordRecoveryState.value = isPasswordRecoveryIntent(intent)
+        setContent { MusicApp(sharedTokenState.value, passwordRecoveryState.value) }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        MusicSupabase.client.handleDeeplinks(intent)
         sharedTokenState.value = tokenFrom(intent)
+        passwordRecoveryState.value = isPasswordRecoveryIntent(intent)
     }
 }
 
 @Composable
-private fun MusicApp(sharedToken: String? = null) {
+private fun MusicApp(sharedToken: String? = null, passwordRecovery: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -204,6 +213,7 @@ private fun MusicApp(sharedToken: String? = null) {
     var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
     var lyricsMediaId by rememberSaveable { mutableStateOf("") }
     var playerVisualMode by rememberSaveable { mutableStateOf("normal") }
+    var passwordRecoveryActive by rememberSaveable { mutableStateOf(passwordRecovery) }
     var sharedContent by remember { mutableStateOf<MusicSharedContent?>(null) }
     var sharedLoadError by remember { mutableStateOf("") }
     var showSharedDialog by rememberSaveable { mutableStateOf(false) }
@@ -308,7 +318,7 @@ private fun MusicApp(sharedToken: String? = null) {
                         MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback, catalogKind, onKindChange = { catalogKind = it })
                         MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
-                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode ->
+                        MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, passwordRecoveryActive, onPasswordRecoveryComplete = { passwordRecoveryActive = false }, onPerformanceModeChange = { mode ->
                             scope.launch {
                                 MusicPreferences.setPerformanceMode(context, mode)
                                 showFeedback(
@@ -2034,6 +2044,8 @@ private fun ProfileScreen(
     padding: PaddingValues,
     darkMode: Boolean,
     performanceMode: String,
+    passwordRecoveryActive: Boolean,
+    onPasswordRecoveryComplete: () -> Unit,
     onPerformanceModeChange: (String) -> Unit,
     sleepTimerMinutes: Int,
     onSleepTimerChange: (Int) -> Unit,
@@ -2046,6 +2058,7 @@ private fun ProfileScreen(
     var authMode by rememberSaveable { mutableStateOf("login") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var newPassword by rememberSaveable { mutableStateOf("") }
     var authMessage by rememberSaveable { mutableStateOf("") }
     var authLoading by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -2096,6 +2109,43 @@ private fun ProfileScreen(
                 }
             }
 
+            if (passwordRecoveryActive) {
+                Text("Enlace de recuperación recibido. Elige una contraseña nueva para tu cuenta.", color = colors.muted, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it; authMessage = "" },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Nueva contraseña") },
+                    visualTransformation = PasswordVisualTransformation()
+                )
+                Button(
+                    onClick = {
+                        if (newPassword.length < 8) {
+                            authMessage = "La contraseña debe tener al menos 8 caracteres."
+                        } else if (!authLoading) {
+                            authLoading = true
+                            scope.launch {
+                                val result = runCatching {
+                                    withContext(Dispatchers.IO) { MusicAuthRepository.updatePassword(newPassword) }
+                                }
+                                if (result.isSuccess) {
+                                    newPassword = ""
+                                    authMessage = "Tu contraseña se ha actualizado correctamente."
+                                    onPasswordRecoveryComplete()
+                                    showFeedback("Contraseña actualizada.", MusicFeedbackType.SUCCESS)
+                                } else {
+                                    authMessage = "No se pudo actualizar la contraseña. Abre de nuevo el enlace de recuperación e inténtalo."
+                                    showFeedback("No se pudo actualizar la contraseña.", MusicFeedbackType.ERROR)
+                                }
+                                authLoading = false
+                            }
+                        }
+                    },
+                    enabled = !authLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (authLoading) "Actualizando…" else "Guardar nueva contraseña") }
+            }
             if (signedIn) {
                 Text("La cuenta está activa en este dispositivo.", color = colors.muted, fontSize = 12.sp)
                 Button(
