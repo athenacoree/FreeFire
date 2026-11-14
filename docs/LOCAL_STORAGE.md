@@ -9,6 +9,7 @@ Preferences are stored with DataStore (light/dark appearance, performance mode a
 - A local track can reference a user-selected device URI or an authorized media URI.
 - A catalog record is metadata, not a downloaded media file.
 - YouTube records must continue to use the official YouTube player/embed flow. The app must not extract, download, cache or play YouTube media in the background.
+- Karaoke timing offsets are stored per media item and restored when that item is played again.
 - The database stores metadata and URI references; it does not copy media files into app storage.
 
 ## Current scope
