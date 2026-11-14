@@ -173,6 +173,7 @@ private fun MusicApp() {
         }
     }
     var selectedTab by rememberSaveable { mutableStateOf(MusicTab.Home.name) }
+    var catalogKind by rememberSaveable { mutableStateOf("video") }
     var sleepTimerMinutes by rememberSaveable { mutableStateOf(0) }
     var lyricsLines by remember { mutableStateOf<List<MusicLyricsLine>>(emptyList()) }
     var lyricsMediaId by rememberSaveable { mutableStateOf("") }
@@ -232,9 +233,9 @@ private fun MusicApp() {
             ) { padding ->
                 saveableStateHolder.SaveableStateProvider(tab.name) {
                     when (tab) {
-                        MusicTab.Home -> HomeScreen(colors, padding, libraryRepository) { selectedTab = MusicTab.Videos.name }
+                        MusicTab.Home -> HomeScreen(colors, padding, libraryRepository) { kind -> catalogKind = kind; selectedTab = MusicTab.Videos.name }
                         MusicTab.Library -> LibraryScreen(colors, padding, libraryRepository, showFeedback)
-                        MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback)
+                        MusicTab.Videos -> CatalogBrowserScreen(colors, padding, libraryRepository, showFeedback, catalogKind, onKindChange = { catalogKind = it })
                         MusicTab.Playlists -> PlaylistManagerScreen(colors, padding, libraryRepository, showFeedback)
                         MusicTab.Profile -> ProfileScreen(colors, padding, darkMode, performanceMode, onPerformanceModeChange = { mode -> scope.launch { MusicPreferences.setPerformanceMode(context, mode) } }, sleepTimerMinutes = sleepTimerMinutes, onSleepTimerChange = { sleepTimerMinutes = it }, onThemeChange = changeTheme, showFeedback = showFeedback)
                     }
@@ -341,6 +342,21 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                         IconButton(onClick = { if (state.isPlaying) MusicPlaybackController.pause(context) else MusicPlaybackController.resume(context) }) { Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pausar" else "Continuar", tint = Color(0xFFB7F36B)) }
                         IconButton(onClick = { MusicPlaybackController.next(context) }, enabled = state.hasNext) { Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White) }
                         TextButton(onClick = { compactPlayer = true }) { Text("−", color = Color(0xFFB6BAC4), fontSize = 18.sp) }
+                    }
+                }
+                if (!state.playbackError.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF3A2529)).padding(horizontal = 11.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(18.dp))
+                        Text(state.playbackError, color = Color(0xFFFFDAD6), fontSize = 10.sp,
+                            modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        TextButton(onClick = { MusicPlaybackController.retry(context) }) {
+                            Text("Reintentar", color = Color(0xFFFFB4AB), fontSize = 10.sp)
+                        }
                     }
                 }
                 if (durationMs > 0L) {
@@ -643,7 +659,7 @@ private fun MusicTopBar(colors: MusicColors, darkMode: Boolean, onThemeChange: (
 }
 
 @Composable
-private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: MusicLibraryRepository, onExplore: () -> Unit) {
+private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: MusicLibraryRepository, onExplore: (String) -> Unit) {
     val recentTracks by repository.recentlyPlayedTracks.collectAsState(initial = emptyList())
     val favoriteCount by repository.favoriteCount.collectAsState(initial = 0)
     val playbackCount by repository.playbackCount.collectAsState(initial = 0)
@@ -659,7 +675,7 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
             }
         }
         item {
-            FeaturedCard(colors, onExplore)
+            FeaturedCard(colors) { onExplore("video") }
         }
         item {
             SectionHeader("Tu actividad musical", "Biblioteca", colors)
@@ -695,9 +711,9 @@ private fun HomeScreen(colors: MusicColors, padding: PaddingValues, repository: 
             SectionHeader("Explora tu biblioteca", "Abrir", colors)
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                LibraryShortcut("Artistas", "Organiza por intérprete", Icons.Default.Person, colors)
-                LibraryShortcut("Álbumes", "Discos y colecciones", Icons.Default.Album, colors)
-                LibraryShortcut("Canciones", "Toda tu música", Icons.Default.MusicNote, colors)
+                LibraryShortcut("Artistas", "Organiza por intérprete", Icons.Default.Person, colors) { onExplore("artist") }
+                LibraryShortcut("Álbumes", "Discos y colecciones", Icons.Default.Album, colors) { onExplore("album") }
+                LibraryShortcut("Canciones", "Toda tu música", Icons.Default.MusicNote, colors) { onExplore("track") }
             }
         }
         item {
@@ -782,9 +798,9 @@ private fun MiniCollection(title: String, subtitle: String, symbol: String, colo
 }
 
 @Composable
-private fun LibraryShortcut(title: String, subtitle: String, icon: ImageVector, colors: MusicColors) {
+private fun LibraryShortcut(title: String, subtitle: String, icon: ImageVector, colors: MusicColors, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surface).padding(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surface).clickable(onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -1191,9 +1207,10 @@ private fun CatalogBrowserScreen(
     colors: MusicColors,
     padding: PaddingValues,
     repository: MusicLibraryRepository,
-    showFeedback: (String, MusicFeedbackType) -> Unit
+    showFeedback: (String, MusicFeedbackType) -> Unit,
+    kind: String,
+    onKindChange: (String) -> Unit
 ) {
-    var kind by rememberSaveable { mutableStateOf("video") }
     var syncStatus by rememberSaveable { mutableStateOf("Catálogo guardado en este dispositivo") }
     var syncing by rememberSaveable { mutableStateOf(false) }
     val entries by repository.catalog(kind).collectAsState(initial = emptyList())
@@ -1213,7 +1230,7 @@ private fun CatalogBrowserScreen(
                 Surface(
                     color = if (kind == value) colors.accent else colors.surface,
                     shape = CircleShape,
-                    modifier = Modifier.clickable { kind = value }
+                    modifier = Modifier.clickable { onKindChange(value) }
                 ) {
                     Text(label, color = if (kind == value) colors.accentText else colors.muted,
                         fontSize = 12.sp, modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp))
