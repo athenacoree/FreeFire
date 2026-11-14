@@ -2,7 +2,7 @@
 
 Music now has a Room-backed local library for tracks, favorites, playlists and playlist membership. The guest experience is local-first: these records stay on the device and are not uploaded automatically.
 
-Preferences are stored with DataStore (light/dark appearance and data-saver preference).
+Preferences are stored with DataStore (light/dark appearance, performance mode and data-saver preference). The premium dark appearance is the first-run default; users can still switch to light mode.
 
 ## Media ownership and safety
 
@@ -13,7 +13,7 @@ Preferences are stored with DataStore (light/dark appearance and data-saver pref
 
 ## Current scope
 
-The Room schema, repository and first library screen are wired together. Users can select audio files through Android’s document picker, keep their URI permission, see them in the library, mark favorites and start native playback through a Media3 session service. DataStore persists the appearance choice. Catalog synchronization now uses version-aware merges and paged remote reads; previously cached records remain available when offline. Never replace a local file URI with a remote catalog URL during sync.
+The Room schema is currently version 4. It stores artist/album relationships on catalog entries so detail views can query related songs and videos locally. The repository and library screen are wired together. Users can select audio files through Android’s document picker, keep their URI permission, see them in the library, mark favorites and start native playback through a Media3 session service. DataStore persists the appearance choice. Catalog synchronization now uses version-aware merges and paged remote reads; previously cached records remain available when offline. Never replace a local file URI with a remote catalog URL during sync.
 
 
 ## Remote catalog and artwork
