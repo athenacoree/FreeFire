@@ -7,18 +7,25 @@ import java.security.MessageDigest
 internal data class MusicLyricsLine(val timeMs: Long, val text: String)
 
 internal object MusicLyricsParser {
+    private const val MAX_SOURCE_CHARS = 64 * 1024
+    private const val MAX_LYRIC_LINES = 4_000
     private val timestamp = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]""")
     private val offsetTag = Regex("""\[offset:([+-]?\d+)]""", RegexOption.IGNORE_CASE)
 
     fun parse(source: String): List<MusicLyricsLine> {
-        val result = mutableListOf<MusicLyricsLine>()
-        val offsetMs = offsetTag.findAll(source).lastOrNull()?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
-        for (raw in source.lineSequence()) {
-            val matches = timestamp.findAll(raw).toList()
-            if (matches.isEmpty()) continue
+        val boundedSource = source.take(MAX_SOURCE_CHARS)
+        val offsetMs = offsetTag.findAll(boundedSource).lastOrNull()
+            ?.groupValues?.getOrNull(1)?.toLongOrNull()?.coerceIn(-600_000L, 600_000L) ?: 0L
+        val result = ArrayList<MusicLyricsLine>(minOf(256, MAX_LYRIC_LINES))
+
+        for (raw in boundedSource.lineSequence()) {
+            if (result.size >= MAX_LYRIC_LINES) break
+            val matches = timestamp.findAll(raw)
             val lyric = timestamp.replace(raw, "").trim()
             if (lyric.isBlank()) continue
+
             for (match in matches) {
+                if (result.size >= MAX_LYRIC_LINES) break
                 val minutes = match.groupValues[1].toLongOrNull() ?: continue
                 val seconds = match.groupValues[2].toLongOrNull() ?: continue
                 val fraction = match.groupValues[3]
@@ -28,10 +35,9 @@ internal object MusicLyricsParser {
                     3 -> fraction.toLongOrNull() ?: 0L
                     else -> 0L
                 }
-                if (seconds < 60) {
-                    val timestampMs = (minutes * 60 + seconds) * 1000 + millis
-                    result += MusicLyricsLine((timestampMs + offsetMs).coerceAtLeast(0L), lyric)
-                }
+                if (seconds !in 0..59 || minutes > 1_000_000L) continue
+                val timestampMs = (minutes * 60L + seconds) * 1000L + millis
+                result += MusicLyricsLine((timestampMs + offsetMs).coerceAtLeast(0L), lyric)
             }
         }
         return result.sortedBy { it.timeMs }
