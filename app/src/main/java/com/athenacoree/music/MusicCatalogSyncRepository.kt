@@ -111,7 +111,8 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
             CatalogEntryEntity(
                 item.id, "track", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.artworkPath,
-                item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt
+                item.contentType, item.albumId, item.mediaSource, item.version, item.updatedAt,
+                artistId = item.artistId, albumId = item.albumId
             )
         })
         val videos = syncPages<VideoDto>(table = "videos", toEntry = { item ->
@@ -119,7 +120,7 @@ internal class MusicCatalogSyncRepository(private val dao: MusicLibraryDao) {
                 item.id, "video", item.title,
                 item.artistId?.let { artistNames[it] }.orEmpty(), item.thumbnailPath,
                 item.provider, item.providerVideoId, item.authorizedMediaPath,
-                item.version, item.updatedAt
+                item.version, item.updatedAt, artistId = item.artistId
             )
         })
         return CatalogSyncResult(artists, albums, tracks, videos)
