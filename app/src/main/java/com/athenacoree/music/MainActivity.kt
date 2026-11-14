@@ -408,6 +408,7 @@ private fun MusicMiniPlayer(state: MusicPlaybackUiState?, context: android.conte
                     .padding(vertical = 86.dp)
             ) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("⋮⋮", color = Color(0xFF77808E), fontSize = 13.sp)
                     if (!state.artworkUri.isNullOrBlank()) {
                         SubcomposeAsyncImage(model = state.artworkUri, contentDescription = "Portada", contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(9.dp)))
                     } else {
