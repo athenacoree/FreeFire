@@ -1217,8 +1217,8 @@ private fun CatalogBrowserScreen(
     var syncStatus by rememberSaveable { mutableStateOf("Catálogo guardado en este dispositivo") }
     var syncing by rememberSaveable { mutableStateOf(false) }
     var catalogQuery by rememberSaveable { mutableStateOf("") }
-    val entries by repository.catalog(kind).collectAsState(initial = emptyList())
-    val searchResults by repository.searchCatalog(catalogQuery.trim()).collectAsState(initial = emptyList())
+    val entries by repository.catalog(kind).collectAsState(initial = null as List<CatalogEntryEntity>?)
+    val searchResults by repository.searchCatalog(catalogQuery.trim()).collectAsState(initial = null as List<CatalogEntryEntity>?)
     val visibleEntries = if (catalogQuery.isBlank()) entries else searchResults
     val localMedia by repository.tracks.collectAsState(initial = emptyList())
     var sourceChoice by remember { mutableStateOf<Pair<CatalogEntryEntity, LocalTrackEntity>?>(null) }
@@ -1281,7 +1281,7 @@ private fun CatalogBrowserScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp)
         ) { Text(if (syncing) "Sincronizando…" else "Actualizar catálogo") }
         Text(syncStatus, color = colors.muted, fontSize = 10.sp, modifier = Modifier.padding(bottom = 8.dp))
-        if (visibleEntries.isEmpty() && syncing) {
+        if (visibleEntries == null || (visibleEntries.isEmpty() && syncing)) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp, bottom = 20.dp)) {
                 repeat(5) { CatalogEntrySkeleton(colors) }
             }
