@@ -1216,6 +1216,11 @@ private fun CatalogBrowserScreen(
     val entries by repository.catalog(kind).collectAsState(initial = emptyList())
     val localMedia by repository.tracks.collectAsState(initial = emptyList())
     var sourceChoice by remember { mutableStateOf<Pair<CatalogEntryEntity, LocalTrackEntity>?>(null) }
+    var selectedDetail by remember { mutableStateOf<CatalogEntryEntity?>(null) }
+    val detailId = selectedDetail?.id.orEmpty()
+    val detailTracks by repository.catalogByArtist(detailId, "track").collectAsState(initial = emptyList())
+    val detailVideos by repository.catalogByArtist(detailId, "video").collectAsState(initial = emptyList())
+    val albumTracks by repository.catalogByAlbum(detailId).collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val dataSaver by MusicPreferences.dataSaver(context).collectAsState(initial = false)
@@ -1279,7 +1284,9 @@ private fun CatalogBrowserScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp))
                             .background(colors.surface).clickable {
-                                if (kind == "video" || kind == "track") {
+                                if (kind == "artist" || kind == "album") {
+                                    selectedDetail = entry
+                                } else if (kind == "video" || kind == "track") {
                                     val expectedSource = if (kind == "video") "device-video" else "device-audio"
                                     val normalized = normalizeMusicTitle(entry.title)
                                     val match = localMedia.firstOrNull { local ->
@@ -1357,6 +1364,64 @@ private fun CatalogBrowserScreen(
                 }
             }
         }
+    }
+    selectedDetail?.let { detail ->
+        val isArtist = detail.kind == "artist"
+        val related = if (isArtist) detailTracks + detailVideos else albumTracks
+        AlertDialog(
+            onDismissRequest = { selectedDetail = null },
+            title = { Text(detail.title, color = colors.text) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(260.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Text(
+                        if (isArtist) detail.subtitle.ifBlank { "Perfil del artista" }
+                        else "Álbum · \${detail.subtitle.ifBlank { "Artista no indicado" }}",
+                        color = colors.muted,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        if (isArtist) "Canciones y vídeos relacionados" else "Canciones del álbum",
+                        color = colors.text,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                    if (related.isEmpty()) {
+                        Text(
+                            if (isArtist) "Todavía no hay canciones ni vídeos vinculados a este artista."
+                            else "Todavía no hay canciones vinculadas a este álbum.",
+                            color = colors.muted,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        related.distinctBy { it.id }.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                                    .background(colors.surfaceAlt).padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (item.kind == "video") Icons.Default.VideoLibrary else Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(Modifier.width(9.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.title, color = colors.text, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(if (item.kind == "video") "Vídeo" else "Canción", color = colors.muted, fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedDetail = null }) { Text("Cerrar", color = colors.accent) }
+            }
+        )
     }
     sourceChoice?.let { (online, offline) ->
         AlertDialog(
