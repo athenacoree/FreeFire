@@ -51,7 +51,7 @@
 - Performance advisor reports 16 unused indexes across the shared project (including Interaccion and newly created Music tables). They are not being removed: usage is not yet representative, and dropping shared-project indexes could harm Interaccion.
 
 ## Verification still pending
-- Latest GitHub Actions run is building the updated Kotlin/Android dependency set. Record the final result after it completes.
+- No Gradle build or test was run during the current static review, in line with the instruction to pause test compilations. The repository workflow is manual-only (`workflow_dispatch`), not triggered by pushes to `main`.
 - Physical-device tests remain necessary for Android 8, Android 13+ partial media permissions, file URI persistence, background playback, email confirmation and session restoration.
 - FCM push delivery remains unconfigured: the Edge Function is deployed, but Firebase Android registration, service-account secret, webhook secret and Database Webhook still need to be supplied/configured.
 - The catalog remains empty until data is inserted by a trusted catalog-management process.
